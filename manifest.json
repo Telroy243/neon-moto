@@ -1,0 +1,17 @@
+{
+  "name": "NEON FLEET",
+  "short_name": "NEON",
+  "description": "Système de gestion de flotte autonome PWA",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00ffcc",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

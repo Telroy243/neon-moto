@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON Fleet - Équipe (RH)</title>
+    <style>
+        /* --- VARIABLES & BASE --- */
+        :root { 
+            --bg: #050505; --card: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00ffcc; --danger: #ff3366; 
+            --text: #ffffff; --text-dim: #888888; 
+            --warning: #ffaa00; --success: #00ffaa; 
+            --info: #0088ff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        a { text-decoration: none; }
+        .hidden { display: none !important; }
+
+        /* --- HEADER --- */
+        header { padding: 15px 20px; background: var(--card); border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 1.4rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;}
+        .btn-add { background: var(--primary); color: #000; border: none; width: 40px; height: 40px; border-radius: 50%; font-weight: bold; font-size: 1.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 0; padding-bottom: 4px;}
+
+        /* --- CONTENEUR PRINCIPAL --- */
+        main { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 90px; }
+        
+        /* --- CARTES MOTARDS --- */
+        .card { 
+            background: var(--card); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 18px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--glass-border); 
+            cursor: pointer; transition: transform 0.3s ease, box-shadow 0.3s ease; 
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,255,204,0.15); border-color: rgba(0,255,204,0.3); }
+        .card:active { transform: scale(0.98); }
+        .rh-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed #333; padding-bottom: 10px;}
+        .rh-nom { font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; gap: 10px;}
+        
+        .avatar { width: 40px; height: 40px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 2px solid var(--primary); }
+        
+        /* BADGES STATUTS */
+        .badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        .b-poste { background: rgba(0, 255, 170, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .b-suspendu { background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .b-ancien { background: rgba(136, 136, 136, 0.1); color: var(--text-dim); border: 1px solid var(--text-dim); }
+
+        .rh-contact { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 5px; }
+        .rh-garant { font-size: 0.85rem; color: var(--info); background: rgba(0, 136, 255, 0.1); padding: 8px; border-radius: 6px; border: 1px solid rgba(0, 136, 255, 0.3); margin-top: 10px;}
+
+        /* --- NAVIGATION --- */
+        nav { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--glass-border); padding-bottom: 10px; z-index: 100; 
+        }
+        .nav-link { background: none; border: none; font-size: 1.5rem; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s; }
+        .nav-link:hover { transform: scale(1.1); color: var(--text); }
+        .nav-link span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-link.active { color: var(--primary); }
+
+        /* --- MODALES --- */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; padding: 20px; z-index: 2000; }
+        .modal-content { background: var(--card); width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; border: 1px solid var(--glass-border); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); box-shadow: 0 20px 50px rgba(0,0,0,0.9); max-height: 90vh; overflow-y: auto;}
+        
+        .section-form { font-size: 0.9rem; color: var(--primary); border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 15px; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;}
+        
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 1rem; }
+        
+        .btn-action { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 10px;}
+        .main-btn { background: var(--primary); color: #000; }
+        .sub-btn { background: transparent; color: var(--text); border: 1px solid #444; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>👥 Équipe (RH)</h1>
+        <button class="btn-add" onclick="showModal('modal-add-rh')">+</button>
+    </header>
+
+    <main id="rh-list-container">
+        <p style="text-align:center; color:var(--text-dim); margin-top:50px">Aucun motard enregistré.</p>
+    </main>
+
+    <nav>
+        <a href="dash.html" class="nav-link">🏠<span>Dash</span></a>
+        <a href="garage.html" class="nav-link">🏍️<span>Garage</span></a>
+        <a href="rh.html" class="nav-link active">👥<span>Équipe</span></a>
+        <a href="finances.html" class="nav-link">📊<span>Finances</span></a>
+        <a href="settings.html" class="nav-link">⚙️<span>Réglages</span></a>
+    </nav>
+
+    <div id="modal-add-rh" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="color:var(--primary); margin-bottom:5px;">Nouveau Partenaire</h3>
+            <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 15px;">Créez une fiche d'identité complète.</p>
+
+            <div class="section-form">Identité du Motard</div>
+            <div class="input-group"><label>Nom Complet</label><input type="text" id="rh-nom" placeholder="Ex: Jean Kasereka"></div>
+            <div class="input-group"><label>Numéro de Téléphone</label><input type="tel" id="rh-tel" placeholder="Ex: 099... / 081..."></div>
+            <div class="input-group"><label>N° Carte d'Électeur (Optionnel)</label><input type="text" id="rh-carte" placeholder="Ex: NNN...NNN"></div>
+
+            <div class="section-form" style="color: var(--info);">Garantie Juridique (Garant)</div>
+            <div class="input-group"><label>Nom du Garant</label><input type="text" id="rh-g-nom" placeholder="Ex: Papa Mumbere (Oncle)"></div>
+            <div class="input-group"><label>Téléphone du Garant</label><input type="tel" id="rh-g-tel" placeholder="Ex: 097..."></div>
+            <div class="input-group"><label>Adresse Physique du Garant</label><input type="text" id="rh-g-adresse" placeholder="Ex: Q. Ndosho, Av. Révolution N°45"></div>
+            
+            <div class="section-form" style="color: var(--primary);">Affectation & Documents</div>
+            <div class="input-group">
+                <label>Moto Assignée (Optionnel)</label>
+                <select id="rh-moto-id"><option value="">Aucune moto pour le moment</option></select>
+            </div>
+            <div class="input-group">
+                <label>Photo de la Moto (Optionnel)</label>
+                <input type="file" id="rh-photo-moto" accept="image/*">
+            </div>
+            <div class="input-group">
+                <label>Photo du Contrat Signé (Optionnel)</label>
+                <input type="file" id="rh-photo-contrat" accept="image/*">
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:25px">
+                <button onclick="hideModal('modal-add-rh')" class="btn-action sub-btn" style="margin:0;">Annuler</button>
+                <button onclick="ajouterMotard()" class="btn-action main-btn" style="margin:0;">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-details-rh" class="modal hidden">
+        <div class="modal-content">
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                <div class="avatar" style="width: 60px; height: 60px; font-size: 2rem;">👤</div>
+                <div>
+                    <h2 id="d-nom" style="margin-bottom: 5px; color: var(--text);">Nom Motard</h2>
+                    <span id="d-badge" class="badge b-poste">EN POSTE</span>
+                </div>
+            </div>
+
+            <div style="background: #000; padding: 15px; border-radius: 8px; border: 1px solid #222; margin-bottom: 15px;">
+                <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;">📞 Téléphone: <a id="d-tel-link" href="#" style="color: var(--primary); font-weight: bold;">---</a></p>
+                <p style="font-size: 0.85rem; color: var(--text-dim);">🪪 ID Électeur: <span id="d-carte" style="color: #fff;">---</span></p>
+            </div>
+
+            <div class="section-form" style="color: var(--info);">Informations du Garant</div>
+            <div style="background: rgba(0, 136, 255, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(0, 136, 255, 0.2); margin-bottom: 20px;">
+                <p style="font-size: 0.9rem; font-weight: bold; margin-bottom: 5px;" id="d-g-nom">Nom Garant</p>
+                <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 5px;">📞 Tel: <a id="d-g-tel-link" href="#" style="color: var(--info);">---</a></p>
+                <p style="font-size: 0.85rem; color: var(--text-dim);">🏠 Adresse: <span id="d-g-adresse" style="color: #fff;">---</span></p>
+            </div>
+
+            <div class="section-form" style="color: var(--primary);">Affectation & Documents</div>
+            <div class="input-group">
+                <label>Moto Assignée</label>
+                <select id="d-moto-id"><option value="">Aucune</option></select>
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom: 20px;">
+                <button type="button" id="btn-view-moto" onclick="voirPhoto('moto')" class="btn-action sub-btn" style="margin:0; font-size: 0.8rem; padding: 10px;">📷 Voir Moto</button>
+                <button type="button" id="btn-view-contrat" onclick="voirPhoto('contrat')" class="btn-action sub-btn" style="margin:0; font-size: 0.8rem; padding: 10px;">📄 Voir Contrat</button>
+            </div>
+            <div class="input-group">
+                <label>Mettre à jour Photo Moto (Optionnel)</label>
+                <input type="file" id="d-photo-moto" accept="image/*">
+            </div>
+            <div class="input-group">
+                <label>Mettre à jour Contrat (Optionnel)</label>
+                <input type="file" id="d-photo-contrat" accept="image/*">
+            </div>
+
+            <div class="input-group">
+                <label>Statut Professionnel</label>
+                <select id="d-statut">
+                    <option value="EN_POSTE">🟢 EN POSTE (Actif)</option>
+                    <option value="SUSPENDU">🔴 SUSPENDU (Problème/Retard)</option>
+                    <option value="ANCIEN">⚪ ANCIEN (A quitté la flotte)</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:25px">
+                <button onclick="hideModal('modal-details-rh')" class="btn-action sub-btn" style="margin:0;">Fermer</button>
+                <button onclick="sauvegarderStatutMotard()" class="btn-action main-btn" style="margin:0;">Mettre à jour</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale pour visualiser en plein écran -->
+    <div id="modal-image" class="modal hidden" onclick="hideModal('modal-image')">
+        <div style="position: relative; max-width: 90vw; max-height: 90vh;">
+            <span style="position: absolute; top: -30px; right: 0; color: white; font-size: 20px; cursor:pointer;" onclick="hideModal('modal-image')">✖ Fermer</span>
+            <img id="d-fullscreen-img" src="" style="max-width: 100%; max-height: 80vh; border-radius: 8px;">
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script>
+        let motardEnCoursEdition = null;
+
+        // 1. DÉMARRAGE
+        let motosMap = {};
+
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) { resolve(null); return; }
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        window.onload = async () => {
+            try {
+                await initDB();
+                const pin = await getStoredPin();
+                if (!pin) { window.location.href = "index.html"; return; }
+                await chargerMotosSelect();
+                await chargerEquipe();
+            } catch (error) {
+                alert("Erreur base de données.");
+            }
+        };
+
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // --- FONCTIONS DB LOCALES (Car non incluses dans database.js d'origine) ---
+        // J'ajoute ces mini-fonctions ici pour ne pas avoir à modifier database.js à nouveau
+        function dbSaveMotard(motard) {
+            return new Promise((resolve, reject) => {
+                const trans = db.transaction("motards", "readwrite");
+                const req = trans.objectStore("motards").put(motard);
+                req.onsuccess = () => resolve(true);
+                req.onerror = () => reject("Erreur d'enregistrement RH");
+            });
+        }
+
+        function dbGetAllMotards() {
+            return new Promise((resolve) => {
+                const trans = db.transaction("motards", "readonly");
+                const req = trans.objectStore("motards").getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve([]);
+            });
+        }
+        // -------------------------------------------------------------------------
+
+        async function chargerMotosSelect() {
+            const selectAdd = document.getElementById('rh-moto-id');
+            const selectEdit = document.getElementById('d-moto-id');
+            const motos = await dbGetAllMotos();
+            
+            let options = '<option value="">Aucune moto assignée</option>';
+            motos.forEach(m => {
+                motosMap[m.id] = m.nom + ' (' + m.plaque + ')';
+                options += `<option value="${m.id}">${m.nom} (${m.plaque})</option>`;
+            });
+            
+            if(selectAdd) selectAdd.innerHTML = options;
+            if(selectEdit) selectEdit.innerHTML = options;
+        }
+
+        // 2. LOGIQUE D'AJOUT
+        async function ajouterMotard() {
+            const nom = document.getElementById('rh-nom').value;
+            const tel = document.getElementById('rh-tel').value;
+            const gNom = document.getElementById('rh-g-nom').value;
+            const gTel = document.getElementById('rh-g-tel').value;
+
+            if (!nom || !gNom || !gTel) {
+                return alert("Le nom du motard, ainsi que le nom et téléphone du garant sont OBLIGATOIRES pour des raisons de sécurité.");
+            }
+
+            const fileMoto = document.getElementById('rh-photo-moto').files[0];
+            const fileContrat = document.getElementById('rh-photo-contrat').files[0];
+            const photoMotoB64 = await getBase64(fileMoto);
+            const photoContratB64 = await getBase64(fileContrat);
+            const motoId = document.getElementById('rh-moto-id').value;
+
+            const newMotard = {
+                id: "RH_" + Date.now(),
+                nom: nom,
+                telephone: tel || "Non renseigné",
+                carte_electeur: document.getElementById('rh-carte').value || "Non renseignée",
+                garant_nom: gNom,
+                garant_tel: gTel,
+                garant_adresse: document.getElementById('rh-g-adresse').value || "Non renseignée",
+                moto_id: motoId || null,
+                photo_moto: photoMotoB64 || null,
+                photo_contrat: photoContratB64 || null,
+                statut: "EN_POSTE", 
+                date_embauche: new Date().toISOString()
+            };
+
+            await dbSaveMotard(newMotard);
+            hideModal('modal-add-rh');
+            
+            // Réinitialisation du formulaire
+            document.querySelectorAll('#modal-add-rh input').forEach(input => input.value = '');
+            document.getElementById('rh-moto-id').value = '';
+            
+            chargerEquipe(); // Rafraîchit la liste
+        }
+
+        // 3. AFFICHAGE DE LA LISTE
+        async function chargerEquipe() {
+            const container = document.getElementById('rh-list-container');
+            const motards = await dbGetAllMotards();
+
+            if (motards.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:50px">Aucun membre dans l\'équipe. Cliquez sur "+" pour ajouter un motard.</p>';
+                return;
+            }
+
+            let htmlContent = "";
+            motards.forEach(m => {
+                // Définition du badge
+                let badgeClass = "b-ancien";
+                let badgeText = "ANCIEN";
+                if (m.statut === "EN_POSTE") { badgeClass = "b-poste"; badgeText = "EN POSTE"; }
+                if (m.statut === "SUSPENDU") { badgeClass = "b-suspendu"; badgeText = "SUSPENDU"; }
+
+                // Score de fiabilité (Simulation)
+                const score = m.statut === "EN_POSTE" ? "100%" : (m.statut === "SUSPENDU" ? "40%" : "N/A");
+                const motoTexte = m.moto_id && motosMap[m.moto_id] ? motosMap[m.moto_id] : "Aucune moto";
+
+                const carteHTML = `
+                    <div class="card" onclick='ouvrirFicheMotard(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
+                        <div class="rh-header">
+                            <div class="rh-nom">
+                                <div class="avatar">👤</div>
+                                ${m.nom}
+                            </div>
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <p class="rh-contact">📞 Tel: ${m.telephone}</p>
+                        <p class="rh-contact">🏍️ Moto: <strong>${motoTexte}</strong></p>
+                        <div class="rh-garant">
+                            <strong>Garant :</strong> ${m.garant_nom} <br>
+                            📞 ${m.garant_tel}
+                        </div>
+                    </div>
+                `;
+                htmlContent += carteHTML;
+            });
+            container.innerHTML = htmlContent;
+        }
+
+        // 4. GESTION DE LA FICHE DÉTAILLÉE
+        function ouvrirFicheMotard(motard) {
+            motardEnCoursEdition = motard;
+
+            document.getElementById('d-nom').innerText = motard.nom;
+            
+            // Configuration du lien pour appeler directement depuis le téléphone
+            const telLink = document.getElementById('d-tel-link');
+            telLink.innerText = motard.telephone;
+            telLink.href = `tel:${motard.telephone}`;
+            
+            document.getElementById('d-carte').innerText = motard.carte_electeur;
+
+            document.getElementById('d-g-nom').innerText = motard.garant_nom;
+            
+            // Lien d'appel pour le garant
+            const gTelLink = document.getElementById('d-g-tel-link');
+            gTelLink.innerText = motard.garant_tel;
+            gTelLink.href = `tel:${motard.garant_tel}`;
+            
+            document.getElementById('d-g-adresse').innerText = motard.garant_adresse;
+            
+            document.getElementById('d-statut').value = motard.statut;
+            document.getElementById('d-moto-id').value = motard.moto_id || "";
+
+            // Mise à jour visuelle du badge dans la modale
+            const badge = document.getElementById('d-badge');
+            if (motard.statut === "EN_POSTE") { badge.className = "badge b-poste"; badge.innerText = "EN POSTE"; }
+            else if (motard.statut === "SUSPENDU") { badge.className = "badge b-suspendu"; badge.innerText = "SUSPENDU"; }
+            else { badge.className = "badge b-ancien"; badge.innerText = "ANCIEN"; }
+
+            // Gérer l'affichage des boutons photos
+            const btnMoto = document.getElementById('btn-view-moto');
+            const btnContrat = document.getElementById('btn-view-contrat');
+
+            // Reset file inputs
+            document.getElementById('d-photo-moto').value = "";
+            document.getElementById('d-photo-contrat').value = "";
+
+            if (motard.photo_moto) { btnMoto.style.opacity = "1"; btnMoto.disabled = false; } 
+            else { btnMoto.style.opacity = "0.5"; btnMoto.disabled = true; }
+
+            if (motard.photo_contrat) { btnContrat.style.opacity = "1"; btnContrat.disabled = false; } 
+            else { btnContrat.style.opacity = "0.5"; btnContrat.disabled = true; }
+
+            showModal('modal-details-rh');
+        }
+
+        function voirPhoto(type) {
+            if (!motardEnCoursEdition) return;
+            const b64 = type === 'moto' ? motardEnCoursEdition.photo_moto : motardEnCoursEdition.photo_contrat;
+            if (b64) {
+                document.getElementById('d-fullscreen-img').src = b64;
+                showModal('modal-image');
+            } else {
+                alert("Aucune photo enregistrée.");
+            }
+        }
+
+        async function sauvegarderStatutMotard() {
+            if (!motardEnCoursEdition) return;
+
+            // Update photos if new ones were provided
+            const fileMoto = document.getElementById('d-photo-moto').files[0];
+            const fileContrat = document.getElementById('d-photo-contrat').files[0];
+            
+            if (fileMoto) motardEnCoursEdition.photo_moto = await getBase64(fileMoto);
+            if (fileContrat) motardEnCoursEdition.photo_contrat = await getBase64(fileContrat);
+
+            motardEnCoursEdition.statut = document.getElementById('d-statut').value;
+            motardEnCoursEdition.moto_id = document.getElementById('d-moto-id').value || null;
+
+            await dbSaveMotard(motardEnCoursEdition); 
+            
+            hideModal('modal-details-rh');
+            chargerEquipe(); 
+        }
+    </script>
+</body>
+</html>

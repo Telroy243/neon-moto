@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON - Connexion</title>
+    <link rel="manifest" href="./manifest.json">
+    <style>
+        :root { --bg: #050505; --card: rgba(20, 20, 20, 0.6); --primary: #00ffcc; --danger: #ff0055; --text: #ffffff; --glass-border: rgba(255, 255, 255, 0.08); }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
+        
+        .neon-title { font-size: 2.5rem; color: var(--primary); text-shadow: 0 0 15px rgba(0,255,204,0.6); margin-bottom: 10px; }
+        #pin-display { font-size: 2.5rem; letter-spacing: 15px; margin: 30px 0; color: var(--primary); height: 50px; text-shadow: 0 0 10px rgba(0,255,204,0.4); }
+        .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; }
+        .pin-grid button { 
+            height: 80px; width: 80px; border-radius: 50%; border: 1px solid var(--glass-border); 
+            background: var(--card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            color: #fff; font-size: 1.5rem; transition: transform 0.2s, box-shadow 0.2s, background 0.2s; 
+        }
+        .pin-grid button:active { background: var(--primary); color: #000; transform: scale(0.9); box-shadow: 0 0 15px rgba(0,255,204,0.5); }
+        .btn-ok { border-color: var(--primary) !important; color: var(--primary) !important; }
+        .btn-c { border-color: var(--danger) !important; color: var(--danger) !important; }
+        
+        #install-banner {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px;
+            background: var(--card); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--primary); padding: 20px; border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,255,204,0.3); z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
+        }
+        #install-banner.hidden { display: none; }
+        #install-banner button {
+            background: var(--primary); color: #000; border: none; padding: 12px 20px;
+            font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: transform 0.2s;
+        }
+        #install-banner button:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <h1 class="neon-title">NEON FLEET</h1>
+    <p id="pin-status" style="color: #888">CHARGEMENT...</p>
+    <div id="pin-display">----</div>
+    <div class="pin-grid">
+        <button onclick="press(1)">1</button><button onclick="press(2)">2</button><button onclick="press(3)">3</button>
+        <button onclick="press(4)">4</button><button onclick="press(5)">5</button><button onclick="press(6)">6</button>
+        <button onclick="press(7)">7</button><button onclick="press(8)">8</button><button onclick="press(9)">9</button>
+        <button onclick="resetPinInput()" class="btn-c">C</button>
+        <button onclick="press(0)">0</button>
+        <button onclick="validatePin()" class="btn-ok">OK</button>
+    </div>
+
+    <!-- Bannière PWA personnalisée -->
+    <div id="install-banner" class="hidden">
+        <h3 style="color:var(--primary); font-size:1.2rem; margin:0; text-transform:uppercase;">Installer NEON FLEET</h3>
+        <p style="font-size:0.85rem; margin:0; color:var(--text-dim);">Installez l'application pour une expérience 100% hors-ligne et un accès direct depuis l'écran d'accueil.</p>
+        <div style="display:flex; gap:10px; width:100%;">
+            <button id="btn-install" style="flex:1;">INSTALLER</button>
+            <button id="btn-close-install" style="flex:0.5; background:transparent; border:1px solid #555; color:#fff;">Plus tard</button>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script>
+        const ADMIN_RECOVERY = "191220040";
+        let inputPin = "";
+
+        window.onload = async () => {
+            await initDB();
+            const savedPin = await getStoredPin();
+            document.getElementById("pin-status").innerText = savedPin ? "ENTREZ VOTRE PIN" : "CRÉEZ UN NOUVEAU PIN";
+        };
+
+        function press(n) { if(inputPin.length < 10) { inputPin += n; renderPin(); } }
+        function resetPinInput() { inputPin = ""; renderPin(); }
+        function renderPin() { document.getElementById("pin-display").innerText = "*".repeat(inputPin.length) || "----"; }
+
+        async function validatePin() {
+            const saved = await getStoredPin();
+            if (!saved) {
+                if (inputPin.length >= 4) {
+                    await savePin(inputPin);
+                    window.location.href = "dash.html"; // Redirection
+                } else { alert("Minimum 4 chiffres."); resetPinInput(); }
+            } else {
+                if (inputPin === saved) {
+                    window.location.href = "dash.html"; // Redirection
+                } else if (inputPin === ADMIN_RECOVERY) {
+                    resetApp(); 
+                } else {
+                    alert("PIN incorrect."); resetPinInput();
+                }
+            }
+        }
+
+        // --- PWA : SERVICE WORKER & INSTALLATION ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.error('ServiceWorker error:', err);
+                });
+            });
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-banner').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-install').addEventListener('click', async () => {
+            document.getElementById('install-banner').classList.add('hidden');
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            }
+        });
+
+        document.getElementById('btn-close-install').addEventListener('click', () => {
+            document.getElementById('install-banner').classList.add('hidden');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('install-banner').classList.add('hidden');
+            deferredPrompt = null;
+        });
+    </script>
+</body>
+</html>

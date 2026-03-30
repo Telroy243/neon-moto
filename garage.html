@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON Fleet - Garage</title>
+    <style>
+        /* --- VARIABLES & BASE --- */
+        :root { 
+            --bg: #050505; --card: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00ffcc; --danger: #ff3366; 
+            --text: #ffffff; --text-dim: #888888; 
+            --warning: #ffaa00; --success: #00ffaa; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; }
+        .hidden { display: none !important; }
+
+        /* --- HEADER --- */
+        header { padding: 15px 20px; background: var(--card); border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { font-size: 1.4rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;}
+        .btn-add { background: var(--primary); color: #000; border: none; width: 40px; height: 40px; border-radius: 50%; font-weight: bold; font-size: 1.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 0; padding-bottom: 4px;}
+
+        /* --- CONTENEUR PRINCIPAL --- */
+        main { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 90px; }
+        
+        /* --- CARTES MOTO --- */
+        .card { background: var(--card); padding: 18px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #222; position: relative; cursor: pointer; transition: transform 0.1s; }
+        .card:active { transform: scale(0.98); }
+        .moto-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .moto-title { font-size: 1.2rem; font-weight: bold; }
+        
+        /* BADGES STATUTS */
+        .badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        .b-active { background: rgba(0, 255, 170, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .b-retard { background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .b-maintenance { background: rgba(255, 170, 0, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+        .b-terminee { background: rgba(136, 136, 136, 0.1); color: var(--text-dim); border: 1px solid var(--text-dim); }
+
+        .progress-container { width: 100%; background: #222; border-radius: 10px; height: 8px; margin-top: 15px; overflow: hidden;}
+        .progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; }
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-top: 6px; }
+        
+        .moto-stats { margin-top:15px; padding-top:12px; border-top:1px dashed #333; display:flex; justify-content:space-between; font-size:0.85rem; }
+
+        /* --- NAVIGATION --- */
+        nav { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--glass-border); padding-bottom: 10px; z-index: 100; 
+        }
+        .nav-link { background: none; border: none; font-size: 1.5rem; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s; }
+        .nav-link:hover { transform: scale(1.1); color: var(--text); }
+        .nav-link span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-link.active { color: var(--primary); }
+
+        /* --- MODALES --- */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; padding: 20px; z-index: 2000; }
+        .modal-content { background: var(--card); width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; border: 1px solid var(--glass-border); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 1rem; }
+        
+        .btn-action { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-size: 1rem; cursor: pointer; margin-bottom: 10px;}
+        .main-btn { background: var(--primary); color: #000; }
+        .sub-btn { background: transparent; color: var(--text); border: 1px solid #444; }
+        
+        /* Grille stats pour la fiche détaillée */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-item { background: #000; padding: 10px; border-radius: 8px; border: 1px solid #222; text-align: center; }
+        .stat-item small { display: block; color: var(--text-dim); font-size: 0.7rem; margin-bottom: 4px; }
+        .stat-item span { font-weight: bold; font-size: 1.1rem; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🏍️ Mon Garage</h1>
+        <button class="btn-add" onclick="showModal('modal-add-moto')">+</button>
+    </header>
+
+    <main id="moto-list-container">
+        <p style="text-align:center; color:var(--text-dim); margin-top:50px">Chargement du garage...</p>
+    </main>
+
+    <nav>
+        <a href="dash.html" class="nav-link">🏠<span>Dash</span></a>
+        <a href="garage.html" class="nav-link active">🏍️<span>Garage</span></a>
+        <a href="rh.html" class="nav-link">👥<span>Équipe</span></a>
+        <a href="finances.html" class="nav-link">📊<span>Finances</span></a>
+        <a href="settings.html" class="nav-link">⚙️<span>Réglages</span></a>
+    </nav>
+
+    <div id="modal-add-moto" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="color:var(--primary); margin-bottom:15px;">Enregistrer une Moto</h3>
+            <div class="input-group"><label>Nom d'identification</label><input type="text" id="m-nom" placeholder="Ex: Boxer Alpha"></div>
+            <div class="input-group"><label>N° de Plaque</label><input type="text" id="m-plaque" placeholder="Ex: NB-1234"></div>
+            <div class="input-group"><label>Type de Gestion</label>
+                <select id="m-type"><option value="CONTRAT_REMISE">Contrat de Remise</option><option value="VERSEMENT_CLASSIQUE">Versement Classique</option></select>
+            </div>
+            <div class="input-group"><label>Prix d'Achat (USD)</label><input type="number" id="m-prix" placeholder="850"></div>
+            <div class="input-group"><label>Versement Hebdomadaire attendu (USD)</label><input type="number" id="m-hebdo" placeholder="40"></div>
+            <div class="input-group"><label>Objectif Total du contrat (USD)</label><input type="number" id="m-objectif" placeholder="2400"></div>
+            
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button onclick="hideModal('modal-add-moto')" class="btn-action sub-btn" style="margin:0;">Annuler</button>
+                <button onclick="ajouterMoto()" class="btn-action main-btn" style="margin:0;">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-details-moto" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="d-nom" style="margin-bottom: 5px; color: var(--primary);">Nom Moto</h2>
+            <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px;">Plaque: <span id="d-plaque">---</span> | Type: <span id="d-type">---</span></p>
+
+            <div class="stats-grid">
+                <div class="stat-item"><small>Prix d'achat</small><span id="d-prix">0$</span></div>
+                <div class="stat-item"><small>Hebdo Attendu</small><span id="d-hebdo">0$</span></div>
+                <div class="stat-item"><small>Total Encaissé</small><span id="d-encaisse" style="color: var(--success);">0$</span></div>
+                <div class="stat-item"><small>ROI Actuel</small><span id="d-roi">0%</span></div>
+            </div>
+
+            <div class="progress-container"><div class="progress-bar" id="d-bar" style="width: 0%;"></div></div>
+            <div class="progress-text" style="margin-bottom: 20px;">
+                <span>Progression Contrat</span>
+                <span id="d-objectif">Objectif : 0$</span>
+            </div>
+
+            <div class="input-group">
+                <label>Changer le statut de la moto</label>
+                <select id="d-statut">
+                    <option value="ACTIVE">🟢 ACTIVE (En circulation)</option>
+                    <option value="EN_RETARD">🔴 EN RETARD (Paiement manqué)</option>
+                    <option value="MAINTENANCE">🟠 MAINTENANCE (Au garage)</option>
+                    <option value="TERMINEE">⚪ TERMINEE (Contrat clos)</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:25px">
+                <button onclick="hideModal('modal-details-moto')" class="btn-action sub-btn" style="margin:0;">Fermer</button>
+                <button onclick="sauvegarderStatutMoto()" class="btn-action main-btn" style="margin:0;">Mettre à jour</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script>
+        let motoEnCoursEdition = null; // Stocke l'ID de la moto actuellement ouverte dans la modale
+
+        // 1. DÉMARRAGE
+        window.onload = async () => {
+            try {
+                await initDB();
+                const pin = await getStoredPin();
+                if (!pin) { window.location.href = "index.html"; return; }
+                
+                await loadNeonCurrency(); // Récupère le choix global
+                await chargerGarage();
+            } catch (error) {
+                alert("Erreur base de données.");
+            }
+        };
+
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // 2. LOGIQUE D'AJOUT
+        async function ajouterMoto() {
+            const nom = document.getElementById('m-nom').value;
+            const prix = parseFloat(document.getElementById('m-prix').value);
+            const hebdo = parseFloat(document.getElementById('m-hebdo').value) || 40;
+            const objectif = parseFloat(document.getElementById('m-objectif').value) || 2400;
+
+            if (!nom || isNaN(prix)) return alert("Le nom et le prix d'achat sont obligatoires.");
+
+            const newMoto = {
+                id: "MOTO_" + Date.now(),
+                nom: nom,
+                plaque: document.getElementById('m-plaque').value || "Non assignée",
+                type_gestion: document.getElementById('m-type').value,
+                prix_achat_usd: prix,
+                versement_hebdo_usd: hebdo,
+                objectif_total_usd: objectif,
+                statut: "ACTIVE", 
+                date_ajout: new Date().toISOString()
+            };
+
+            await dbSaveMoto(newMoto);
+            hideModal('modal-add-moto');
+            
+            // Réinitialisation du formulaire
+            document.getElementById('m-nom').value = "";
+            document.getElementById('m-plaque').value = "";
+            document.getElementById('m-prix').value = "";
+            
+            chargerGarage(); // Rafraîchit la liste
+        }
+
+        // 3. AFFICHAGE DE LA LISTE
+        async function chargerGarage() {
+            const container = document.getElementById('moto-list-container');
+            const motos = await dbGetAllMotos();
+            const motards = await dbGetAllMotards();
+            const transactions = db.objectStoreNames.contains("transactions") ? await dbGetAllTransactions() : [];
+
+            // Calcul des encaissements réels par moto depuis le Grand Livre
+            const encaissementsMap = {};
+            transactions.forEach(tx => {
+                if (tx.type === "ENTREE" && tx.moto_id) {
+                    if (!encaissementsMap[tx.moto_id]) encaissementsMap[tx.moto_id] = 0;
+                    encaissementsMap[tx.moto_id] += tx.montant_usd;
+                }
+            });
+
+            // Création d'un dictionnaire Moto ID -> Nom du Motard
+            const affectations = {};
+            motards.forEach(motard => {
+                if(motard.moto_id) {
+                    affectations[motard.moto_id] = motard.nom;
+                }
+            });
+
+            if (motos.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:50px">Votre garage est vide. Cliquez sur le "+" pour ajouter une moto.</p>';
+                return;
+            }
+
+            let htmlContent = "";
+            motos.forEach(m => {
+                // Calculs financiers réels
+                const totalEncaisse = encaissementsMap[m.id] || 0;
+                m._totalEncaisse = totalEncaisse; // On l'attache temporairement pour l'ouvrir dans la modale
+
+                const progressPct = m.objectif_total_usd > 0 ? (totalEncaisse / m.objectif_total_usd) * 100 : 0;
+                const roi = m.prix_achat_usd > 0 ? ((totalEncaisse - m.prix_achat_usd) / m.prix_achat_usd * 100).toFixed(1) : 0;
+                
+                // Définition de la classe du badge selon le statut
+                let badgeClass = "b-terminee";
+                if (m.statut === "ACTIVE") badgeClass = "b-active";
+                if (m.statut === "EN_RETARD") badgeClass = "b-retard";
+                if (m.statut === "MAINTENANCE") badgeClass = "b-maintenance";
+
+                const assignedMotard = affectations[m.id] || "Aucun conducteur affilié";
+
+                // Création de la carte (On passe l'objet moto complet en JSON via data-attribute pour l'ouvrir ensuite)
+                const carteHTML = `
+                    <div class="card" onclick='ouvrirFicheMoto(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
+                        <div class="moto-header">
+                            <span class="moto-title">${m.nom}</span>
+                            <span class="badge ${badgeClass}">${m.statut.replace('_', ' ')}</span>
+                        </div>
+                        <p style="font-size:0.8rem; color:var(--text-dim);">Plaque: ${m.plaque} | Achat: ${formatMoney(m.prix_achat_usd)}</p>
+                        <p style="font-size:0.85rem; color:#00ffcc; font-weight:bold; margin-top:5px; margin-bottom:5px;">👤 ${assignedMotard}</p>
+                        
+                        <div class="progress-container"><div class="progress-bar" style="width: ${Math.min(progressPct, 100)}%;"></div></div>
+                        <div class="progress-text"><span>Contrat : ${progressPct.toFixed(1)}%</span><span>Objectif : ${formatMoney(m.objectif_total_usd)}</span></div>
+                        
+                        <div class="moto-stats">
+                            <span>Versement : <strong>${formatMoney(m.versement_hebdo_usd)}/sem</strong></span>
+                            <span style="color:${roi >= 0 ? 'var(--success)' : 'var(--danger)'}">ROI Actuel : <strong>${roi}%</strong></span>
+                        </div>
+                    </div>
+                `;
+                htmlContent += carteHTML;
+            });
+            container.innerHTML = htmlContent;
+        }
+
+        // 4. GESTION DE LA FICHE DÉTAILLÉE (MODALE)
+        function ouvrirFicheMoto(moto) {
+            motoEnCoursEdition = moto; // On sauvegarde la moto en mémoire pour la mise à jour
+
+            // Remplissage des données dans la modale
+            document.getElementById('d-nom').innerText = moto.nom;
+            document.getElementById('d-plaque').innerText = moto.plaque;
+            document.getElementById('d-type').innerText = moto.type_gestion.replace('_', ' ');
+            document.getElementById('d-prix').innerText = formatMoney(moto.prix_achat_usd);
+            document.getElementById('d-hebdo').innerText = formatMoney(moto.versement_hebdo_usd);
+            document.getElementById('d-objectif').innerText = `Objectif : ${formatMoney(moto.objectif_total_usd)}`;
+            
+            // Sélection automatique du bon statut dans le menu déroulant
+            document.getElementById('d-statut').value = moto.statut;
+
+            // Utilisation du vrai calcul DB injecté par chargerGarage()
+            const totalEncaisse = moto._totalEncaisse || 0; 
+            const progressPct = moto.objectif_total_usd > 0 ? (totalEncaisse / moto.objectif_total_usd) * 100 : 0;
+            const roi = moto.prix_achat_usd > 0 ? ((totalEncaisse - moto.prix_achat_usd) / moto.prix_achat_usd * 100).toFixed(1) : 0;
+
+            document.getElementById('d-encaisse').innerText = formatMoney(totalEncaisse);
+            document.getElementById('d-roi').innerText = roi + "%";
+            document.getElementById('d-roi').style.color = roi >= 0 ? "var(--success)" : "var(--danger)";
+            document.getElementById('d-bar').style.width = Math.min(progressPct, 100) + "%";
+
+            showModal('modal-details-moto');
+        }
+
+        async function sauvegarderStatutMoto() {
+            if (!motoEnCoursEdition) return;
+
+            const nouveauStatut = document.getElementById('d-statut').value;
+            motoEnCoursEdition.statut = nouveauStatut;
+
+            await dbSaveMoto(motoEnCoursEdition); // Fonction "put" dans database.js qui met à jour si l'ID existe
+            
+            hideModal('modal-details-moto');
+            chargerGarage(); // Rafraîchit l'affichage avec le nouveau badge
+        }
+    </script>
+</body>
+</html>

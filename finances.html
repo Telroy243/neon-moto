@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON Fleet - Finances</title>
+    <style>
+        /* --- VARIABLES & BASE --- */
+        :root { 
+            --bg: #050505; --card: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00ffcc; --danger: #ff3366; 
+            --text: #ffffff; --text-dim: #888888; 
+            --warning: #ffaa00; --success: #00ffaa; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        a { text-decoration: none; }
+        .hidden { display: none !important; }
+
+        /* --- HEADER & STATS --- */
+        header { padding: 15px 20px; background: var(--card); border-bottom: 1px solid #222; }
+        header h1 { font-size: 1.4rem; color: var(--primary); margin-bottom: 10px; }
+        .caisse-box { background: #000; padding: 15px; border-radius: 10px; border: 1px solid #333; text-align: center; }
+        .caisse-box small { color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .caisse-box span { display: block; font-size: 2rem; font-weight: bold; color: var(--primary); margin-top: 5px; }
+
+        /* --- ACTIONS --- */
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px 20px 0 20px; }
+        .btn-action { padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 0.9rem; cursor: pointer; text-align: center; }
+        .btn-in { background: rgba(0, 255, 170, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .btn-out { background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+
+        /* --- LISTE DES TRANSACTIONS --- */
+        main { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 90px; }
+        .section-title { font-size: 1rem; color: var(--text-dim); margin-bottom: 15px; border-bottom: 1px solid #222; padding-bottom: 5px; }
+        
+        .tx-card { background: var(--card); padding: 12px 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #333; }
+        .tx-in { border-left-color: var(--success); }
+        .tx-out { border-left-color: var(--danger); }
+        .tx-info h4 { margin: 0; font-size: 1rem; color: var(--text); }
+        .tx-info small { color: var(--text-dim); font-size: 0.75rem; }
+        .tx-amount { font-weight: bold; font-size: 1.1rem; }
+        .amount-in { color: var(--success); }
+        .amount-out { color: var(--danger); }
+
+        /* --- NAVIGATION --- */
+        nav { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--glass-border); padding-bottom: 10px; z-index: 100; 
+        }
+        .nav-link { background: none; border: none; font-size: 1.5rem; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s; }
+        .nav-link:hover { transform: scale(1.1); color: var(--text); }
+        .nav-link span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-link.active { color: var(--primary); }
+
+        /* --- MODALES --- */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; padding: 20px; z-index: 2000; }
+        .modal-content { background: var(--card); width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; border: 1px solid var(--glass-border); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 1rem;}
+        .main-btn { background: var(--primary); color: #000; width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer;}
+        .sub-btn { background: transparent; color: var(--text); border: 1px solid #444; width: 100%; padding: 15px; border-radius: 10px; cursor: pointer;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📊 Grand Livre</h1>
+        <div class="caisse-box" style="margin-bottom: 10px;">
+            <small>Caisse d'Entreprise Disponible</small>
+            <span id="ui-caisse-totale">0.00 $</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="caisse-box" style="padding: 10px; border-color: var(--success); background: rgba(0, 255, 170, 0.05);">
+                <small style="color: var(--success);">Total Entrées</small>
+                <span id="ui-total-in" style="font-size: 1.2rem; color: var(--success); margin-top: 2px;">0.00 $</span>
+            </div>
+            <div class="caisse-box" style="padding: 10px; border-color: var(--danger); background: rgba(255, 51, 102, 0.05);">
+                <small style="color: var(--danger);">Total Sorties</small>
+                <span id="ui-total-out" style="font-size: 1.2rem; color: var(--danger); margin-top: 2px;">0.00 $</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="action-grid">
+        <button class="btn-action btn-in" onclick="showModal('modal-versement')">➕ ENCAISSEMENT</button>
+        <button class="btn-action btn-out" onclick="showModal('modal-retrait')">➖ RETRAIT</button>
+    </div>
+
+    <main>
+        <h2 class="section-title">Historique des Transactions</h2>
+        
+        <!-- ZONE DE RECHERCHE & FILTRES -->
+        <div style="display:flex; gap:10px; margin-bottom:20px;">
+            <select id="f-moto" onchange="chargerTransactions()" style="flex:1; padding:12px; border-radius:8px; border:1px solid var(--glass-border); background:var(--card); color:#fff; font-size:0.9rem;">
+                <option value="">Toutes les Motos / Caisse</option>
+            </select>
+            <input type="month" id="f-mois" onchange="chargerTransactions()" style="flex:1; padding:12px; border-radius:8px; border:1px solid var(--glass-border); background:var(--card); color:#fff; font-size:0.9rem;">
+            <button onclick="document.getElementById('f-moto').value=''; document.getElementById('f-mois').value=''; chargerTransactions()" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding:10px 15px; border-radius:8px; cursor:pointer;" title="Réinitialiser">✖</button>
+        </div>
+
+        <div id="tx-list-container">
+            <p style="text-align:center; color:var(--text-dim); margin-top:30px">Chargement...</p>
+        </div>
+    </main>
+
+    <nav>
+        <a href="dash.html" class="nav-link">🏠<span>Dash</span></a>
+        <a href="garage.html" class="nav-link">🏍️<span>Garage</span></a>
+        <a href="rh.html" class="nav-link">👥<span>Équipe</span></a>
+        <a href="finances.html" class="nav-link active">📊<span>Finances</span></a>
+        <a href="settings.html" class="nav-link">⚙️<span>Réglages</span></a>
+    </nav>
+
+    <div id="modal-versement" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="color:var(--success); margin-bottom:15px;">Nouvel Encaissement</h3>
+            <div class="input-group">
+                <label>Sélectionner la moto source</label>
+                <select id="v-moto-id"><option value="">Chargement...</option></select>
+            </div>
+            <div class="input-group">
+                <label>Montant reçu (USD)</label>
+                <input type="number" id="v-montant" placeholder="Ex: 40">
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button onclick="hideModal('modal-versement')" class="sub-btn" style="margin:0;">Annuler</button>
+                <button onclick="validerVersement()" class="main-btn" style="background:var(--success); margin:0;">Encaisser</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-retrait" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="color:var(--danger); margin-bottom:15px;">Faire un Retrait</h3>
+            <div class="input-group">
+                <label>Montant à retirer de la caisse (USD)</label>
+                <input type="number" id="r-montant" placeholder="Ex: 50">
+            </div>
+            <div class="input-group">
+                <label>Destination / Motif</label>
+                <select id="r-motif">
+                    <option value="CONSOMMATION">Budget de Vie (Nourriture, transport...)</option>
+                    <option value="EPARGNE_PROJET">Épargne Projet (Acquisition)</option>
+                    <option value="MAINTENANCE">Frais de Maintenance Moto</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button onclick="hideModal('modal-retrait')" class="sub-btn" style="margin:0;">Annuler</button>
+                <button onclick="validerRetrait()" class="main-btn" style="background:var(--danger); color:#fff; margin:0;">Retirer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script>
+        // 1. DÉMARRAGE ET SÉCURITÉ
+        window.onload = async () => {
+            try {
+                await initDB();
+                const pin = await getStoredPin();
+                if (!pin) { window.location.href = "index.html"; return; }
+                
+                await loadNeonCurrency(); // Récupère le choix de la devise
+
+                await chargerMotosSelect();
+                await chargerTransactions();
+            } catch (error) {
+                alert("Erreur base de données.");
+            }
+        };
+
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // 2. PRÉPARATION DES DONNÉES
+        let motosMap = {}; // Pour retrouver facilement le nom d'une moto via son ID
+
+        async function chargerMotosSelect() {
+            const select = document.getElementById('v-moto-id');
+            const selectFiltre = document.getElementById('f-moto');
+            const motos = await dbGetAllMotos();
+            
+            select.innerHTML = motos.length === 0 ? '<option value="">Aucune moto enregistrée</option>' : '';
+            let optionsFiltre = '<option value="">Toutes les Motos / Caisse</option>';
+
+            motos.forEach(m => {
+                motosMap[m.id] = m.nom; // Stockage en mémoire
+                optionsFiltre += `<option value="${m.id}">${m.nom} (${m.plaque})</option>`;
+                if(m.statut === "ACTIVE" || m.statut === "EN_RETARD") {
+                    select.innerHTML += `<option value="${m.id}">${m.nom} (${m.plaque})</option>`;
+                }
+            });
+            
+            if(selectFiltre) selectFiltre.innerHTML = optionsFiltre;
+        }
+
+        // 3. ENREGISTREMENT DES TRANSACTIONS DANS LA BDD
+        async function validerVersement() {
+            const motoId = document.getElementById('v-moto-id').value;
+            const montant = parseFloat(document.getElementById('v-montant').value);
+            
+            if(!motoId || isNaN(montant) || montant <= 0) return alert("Veuillez sélectionner une moto et indiquer un montant valide.");
+
+            const tx = {
+                id: "TX_" + Date.now(),
+                date_timestamp: Date.now(),
+                type: "ENTREE",
+                categorie: "VERSEMENT_HEBDO",
+                montant_usd: montant,
+                moto_id: motoId
+            };
+
+            await dbSaveTransaction(tx);
+            
+            document.getElementById('v-montant').value = ""; // Reset
+            hideModal('modal-versement');
+            chargerTransactions(); // Rafraîchit l'affichage
+        }
+
+        async function validerRetrait() {
+            const montant = parseFloat(document.getElementById('r-montant').value);
+            const motif = document.getElementById('r-motif').value;
+            
+            if(isNaN(montant) || montant <= 0) return alert("Indiquez un montant valide.");
+
+            const tx = {
+                id: "TX_" + Date.now(),
+                date_timestamp: Date.now(),
+                type: "SORTIE",
+                categorie: motif,
+                montant_usd: montant,
+                moto_id: null
+            };
+
+            await dbSaveTransaction(tx);
+            
+            document.getElementById('r-montant').value = ""; // Reset
+            hideModal('modal-retrait');
+            chargerTransactions(); // Rafraîchit l'affichage
+        }
+
+        // 4. LECTURE ET AFFICHAGE DU GRAND LIVRE
+        async function chargerTransactions() {
+            const container = document.getElementById('tx-list-container');
+            let transactions = await dbGetAllTransactions();
+            
+            // Appliquer les filtres
+            const filtreMoto = document.getElementById('f-moto').value;
+            const filtreMois = document.getElementById('f-mois').value; // Format: "YYYY-MM"
+            
+            if (filtreMoto) {
+                transactions = transactions.filter(tx => tx.moto_id === filtreMoto);
+            }
+            if (filtreMois) {
+                const [year, month] = filtreMois.split('-');
+                transactions = transactions.filter(tx => {
+                    const d = new Date(tx.date_timestamp);
+                    return d.getFullYear() == year && (d.getMonth() + 1) == month; // getMonth() est 0-indexé
+                });
+            }
+
+            let totalCaisse = 0;
+            let totalIn = 0;
+            let totalOut = 0;
+
+            if (transactions.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:30px">Aucun mouvement trouvé pour ces critères.</p>';
+                document.getElementById('ui-caisse-totale').innerText = formatMoney(0);
+                document.getElementById('ui-total-in').innerText = formatMoney(0);
+                document.getElementById('ui-total-out').innerText = formatMoney(0);
+                return;
+            }
+
+            container.innerHTML = "";
+            let htmlContent = "";
+            
+            // Trier de la plus récente à la plus ancienne
+            transactions.sort((a, b) => b.date_timestamp - a.date_timestamp);
+
+            transactions.forEach(tx => {
+                // Formatage de la date (ex: 30 Mars 2026)
+                const dateObj = new Date(tx.date_timestamp);
+                const dateStr = dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+                
+                let cardHTML = '';
+
+                if (tx.type === "ENTREE") {
+                    totalCaisse += tx.montant_usd;
+                    totalIn += tx.montant_usd;
+                    const nomMoto = motosMap[tx.moto_id] || "Moto supprimée";
+                    
+                    cardHTML = `
+                        <div class="tx-card tx-in">
+                            <div class="tx-info">
+                                <h4>Versement : ${nomMoto}</h4>
+                                <small>${dateStr}</small>
+                            </div>
+                            <span class="tx-amount amount-in">+ ${formatMoney(tx.montant_usd)}</span>
+                        </div>
+                    `;
+                } else if (tx.type === "SORTIE") {
+                    totalCaisse -= tx.montant_usd;
+                    totalOut += tx.montant_usd;
+                    const motifPropre = tx.categorie.replace('_', ' ');
+                    
+                    cardHTML = `
+                        <div class="tx-card tx-out">
+                            <div class="tx-info">
+                                <h4>Retrait : ${motifPropre}</h4>
+                                <small>${dateStr}</small>
+                            </div>
+                            <span class="tx-amount amount-out">- ${formatMoney(tx.montant_usd)}</span>
+                        </div>
+                    `;
+                }
+                
+                htmlContent += cardHTML;
+            });
+            container.innerHTML = htmlContent;
+
+            // Mise à jour de l'affichage de la caisse totale
+            document.getElementById('ui-caisse-totale').innerText = formatMoney(totalCaisse);
+            document.getElementById('ui-total-in').innerText = formatMoney(totalIn);
+            document.getElementById('ui-total-out').innerText = formatMoney(totalOut);
+            
+            // Petit avertissement visuel si la caisse est dans le rouge
+            if(totalCaisse < 0) {
+                document.getElementById('ui-caisse-totale').style.color = "var(--danger)";
+            } else {
+                document.getElementById('ui-caisse-totale').style.color = "var(--primary)";
+            }
+        }
+    </script>
+</body>
+</html>

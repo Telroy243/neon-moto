@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON Fleet - Dashboard</title>
+    <link rel="manifest" href="./manifest.json">
+    <style>
+        /* --- VARIABLES & BASE --- */
+        :root { 
+            --bg: #050505; --card: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00ffcc; --danger: #ff3366; 
+            --text: #ffffff; --text-dim: #888888; 
+            --warning: #ffaa00; --success: #00ffaa; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .hidden { display: none !important; }
+        a { text-decoration: none; }
+
+        /* --- HEADER & BANDEAU FINANCIER --- */
+        header { padding: 15px 20px; background: var(--card); border-bottom: 1px solid #222; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        
+        /* Bouton Bascule USD/CDF */
+        .currency-switch { background: #222; border: 1px solid #444; color: #fff; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .currency-switch.cdf { background: var(--primary); color: #000; border-color: var(--primary); }
+        .taux-display { font-size: 0.8rem; color: var(--text-dim); }
+
+        .header-stats { display: flex; justify-content: space-between; align-items: flex-end;}
+        .stat-box small { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;}
+        .stat-box span { font-size: 1.6rem; font-weight: bold; color: var(--primary); display: block; }
+
+        .progress-container { width: 100%; background: #222; border-radius: 10px; height: 6px; margin-top: 15px; overflow: hidden;}
+        .progress-bar { height: 100%; background: var(--primary); transition: width 0.3s; }
+        .progress-text { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-top: 6px; }
+
+        /* --- CONTENEUR PRINCIPAL --- */
+        main { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 90px; }
+        .view-title { margin-bottom: 20px; font-size: 1.4rem; border-left: 4px solid var(--primary); padding-left: 10px; }
+        
+        /* --- CARTES & COMPOSANTS --- */
+        .card { 
+            background: var(--card); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 18px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--glass-border); 
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,255,204,0.15); }
+        .alert-red { border-left: 4px solid var(--danger); }
+        .alert-orange { border-left: 4px solid var(--warning); }
+        .alert-list { list-style: none; margin-top: 8px; font-size: 0.85rem; color: var(--text-dim); }
+        .alert-list li { padding: 4px 0; border-bottom: 1px dashed #333; }
+        .alert-list li:last-child { border-bottom: none; }
+        
+        .btn-action { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 12px; font-size: 1rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;}
+        .main-btn { background: var(--primary); color: #000; }
+        .sub-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+
+        /* --- NAVIGATION --- */
+        nav { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--glass-border); padding-bottom: 10px; z-index: 100; 
+        }
+        .nav-link { background: none; border: none; font-size: 1.5rem; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s; }
+        .nav-link:hover { transform: scale(1.1); color: var(--text); }
+        .nav-link span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-link.active { color: var(--primary); }
+
+        /* --- MODALES --- */
+        .modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display:flex; align-items:center; justify-content:center; padding: 20px; z-index: 2000; }
+        .modal-content { background: var(--card); width: 100%; max-width: 400px; padding: 25px; border-radius: 15px; border: 1px solid var(--glass-border); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); box-shadow: 0 20px 50px rgba(0,0,0,0.9); }
+        .modal-content input, .modal-content select { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="top-bar">
+            <button id="btn-currency" class="currency-switch" onclick="toggleCurrency()">🇺🇸 USD</button>
+            <span class="taux-display" id="ui-taux">1$ = 2500 FC</span>
+        </div>
+        <div class="header-stats">
+            <div class="stat-box">
+                <small>Caisse Entreprise</small>
+                <span id="ui-caisse" class="money-val" data-usd="0">0.00 $</span>
+            </div>
+            <div class="stat-box" style="text-align: right;">
+                <small id="ui-projet-nom">Épargne Projet</small>
+                <span id="ui-projet-pct">0%</span>
+            </div>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="ui-projet-bar" style="width: 0%;"></div>
+        </div>
+    </header>
+
+    <main>
+        <h2 class="view-title">Tableau de Bord</h2>
+        
+        <div class="card">
+            <h3 style="font-size: 1rem; margin-bottom: 10px; color: var(--text);">Taille du Parc Moto</h3>
+            <div class="progress-container" style="height: 10px;">
+                <div class="progress-bar" id="ui-parc-bar" style="width: 0%; background: var(--primary);"></div>
+            </div>
+            <div class="progress-text">
+                <span id="ui-parc-actuel">0 Active(s)</span>
+                <span id="ui-parc-cible">Objectif : 8 Motos</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="font-size: 1rem; margin-bottom: 10px; color: var(--text);">Consommation (Mois en cours)</h3>
+            <div class="progress-container" style="height: 10px;">
+                <div class="progress-bar" id="ui-vie-bar" style="width: 0%; background: var(--success);"></div>
+            </div>
+            <div class="progress-text">
+                <span id="ui-vie-consomme" class="money-val" data-usd="0">Dépensé : 0$</span>
+                <span id="ui-vie-objectif" class="money-val" data-usd="600">Budget : 600$</span>
+            </div>
+        </div>
+
+        <div class="card" id="chart-container">
+            <h3 style="font-size: 1rem; margin-bottom: 10px; color: var(--text);">📈 Revenus (4 dernières semaines)</h3>
+            <div style="height: 180px; width: 100%; position: relative;">
+                <canvas id="revenueChart"></canvas>
+            </div>
+            <p id="chart-fallback" style="font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 5px; display: none;">Graphique indisponible (Internet requis la 1ère fois)</p>
+        </div>
+
+        <div class="card alert-red">
+            <h3 style="font-size: 1rem; color: var(--danger); margin-bottom: 5px;">⚠️ Alertes de Retards</h3>
+            <ul class="alert-list" id="alert-retards">
+                <li style="color:var(--success)">Aucun retard sur la semaine en cours.</li>
+            </ul>
+        </div>
+
+        <div class="card alert-orange">
+            <h3 style="font-size: 1rem; color: var(--warning); margin-bottom: 5px;">⏳ Fins de contrat proches</h3>
+            <ul class="alert-list" id="alert-contrats">
+                <li>Aucun contrat ne se termine dans les 30 prochains jours.</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 25px;">
+            <button class="btn-action main-btn" onclick="showModal('modal-versement')">➕ ENCAISSEMENT</button>
+            <button class="btn-action sub-btn" onclick="showModal('modal-retrait')">➖ RETRAIT</button>
+        </div>
+    </main>
+
+    <nav>
+        <a href="dash.html" class="nav-link active">🏠<span>Dash</span></a>
+        <a href="garage.html" class="nav-link">🏍️<span>Garage</span></a>
+        <a href="rh.html" class="nav-link">👥<span>Équipe</span></a>
+        <a href="finances.html" class="nav-link">📊<span>Finances</span></a>
+        <a href="settings.html" class="nav-link">⚙️<span>Réglages</span></a>
+    </nav>
+
+    <div id="modal-versement" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="color:var(--primary); margin-bottom:15px;">Nouvel Encaissement</h3>
+            <label style="font-size: 0.8rem; color: var(--text-dim);">Sélectionner la moto</label>
+            <select id="v-moto-id"><option value="">Chargement...</option></select>
+            
+            <label style="font-size: 0.8rem; color: var(--text-dim); margin-top: 10px; display: block;">Montant reçu (USD)</label>
+            <input type="number" id="v-montant" placeholder="Ex: 40">
+            
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button onclick="hideModal('modal-versement')" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; margin:0;">Annuler</button>
+                <button onclick="enregistrerVersement()" class="btn-action main-btn" style="margin:0;">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-retrait" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="color:var(--danger); margin-bottom:15px;">Faire un Retrait</h3>
+            <label style="font-size: 0.8rem; color: var(--text-dim);">Montant à retirer (USD)</label>
+            <input type="number" id="r-montant" placeholder="Ex: 50">
+            
+            <label style="font-size: 0.8rem; color: var(--text-dim); margin-top: 10px; display: block;">Destination</label>
+            <select id="r-motif">
+                <option value="CONSOMMATION">Budget de Vie</option>
+                <option value="EPARGNE_PROJET">Épargne Projet (Acquisition Moto)</option>
+            </select>
+            
+            <div style="display:flex; gap:10px; margin-top:20px">
+                <button onclick="hideModal('modal-retrait')" class="btn-action" style="background:#222; color:#fff; border:1px solid #444; margin:0;">Annuler</button>
+                <button onclick="enregistrerRetrait()" class="btn-action" style="background:var(--danger); color:#fff; margin:0;">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // VARIABLES GLOBALES
+        let isUSD = true;
+        let tauxActuel = 2500;
+
+        window.onload = async () => {
+            try {
+                await initDB();
+                const pin = await getStoredPin();
+                if (!pin) { window.location.href = "index.html"; return; }
+                
+                await loadDashboardData();
+                await loadMotosForSelect();
+            } catch (error) {
+                alert("Erreur de base de données.");
+            }
+        };
+
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // BASCULE DE DEVISE (USD / CDF)
+        function toggleCurrency() {
+            isUSD = !isUSD;
+            const btn = document.getElementById('btn-currency');
+            
+            if(isUSD) {
+                btn.innerHTML = "🇺🇸 USD";
+                btn.classList.remove('cdf');
+            } else {
+                btn.innerHTML = "🇨🇩 CDF";
+                btn.classList.add('cdf');
+            }
+            
+            dbSaveConfig('pref_devise', isUSD ? 'USD' : 'CDF'); // Mémorise silencieusement le choix de l'utilisateur
+            updateCurrencyDisplay();
+            loadDashboardData(); // Recharge le graphique et les stats pour appliquer la bonne devise instantanément
+        }
+
+        function updateCurrencyDisplay() {
+            // Parcourt tous les éléments ayant la classe "money-val"
+            document.querySelectorAll('.money-val').forEach(el => {
+                const valUSD = parseFloat(el.getAttribute('data-usd')) || 0;
+                if(isUSD) {
+                    el.innerText = el.id === 'ui-vie-consomme' ? `Dépensé : ${valUSD.toFixed(2)}$` : 
+                                   el.id === 'ui-vie-objectif' ? `Budget : ${valUSD.toFixed(2)}$` : 
+                                   `${valUSD.toFixed(2)} $`;
+                } else {
+                    const valCDF = valUSD * tauxActuel;
+                    el.innerText = el.id === 'ui-vie-consomme' ? `Dépensé : ${valCDF.toLocaleString()} FC` : 
+                                   el.id === 'ui-vie-objectif' ? `Budget : ${valCDF.toLocaleString()} FC` : 
+                                   `${valCDF.toLocaleString()} FC`;
+                }
+            });
+        }
+
+        async function loadDashboardData() {
+            // 1. Récupérer les paramètres
+            const projetNom = await dbGetConfig('projet_nom') || "Projet d'Achat";
+            const projetCout = parseFloat(await dbGetConfig('projet_cout')) || 2500;
+            tauxActuel = parseFloat(await dbGetConfig('taux_change')) || 2500;
+            const budgetVie = parseFloat(await dbGetConfig('budget_vie')) || 600;
+
+            // Restauration silencieuse de la devise préférée
+            const prefDevise = await dbGetConfig('pref_devise');
+            if (prefDevise === "CDF") {
+                isUSD = false;
+                const btn = document.getElementById('btn-currency');
+                btn.innerHTML = "🇨🇩 CDF";
+                btn.classList.add('cdf');
+            }
+            const tailleCible = parseInt(await dbGetConfig('taille_parc')) || 8;
+
+            document.getElementById('ui-taux').innerText = `1$ = ${tauxActuel} FC`;
+            document.getElementById('ui-projet-nom').innerText = `Épargne : ${projetNom}`;
+            
+            // Attribuer la data pour la devise
+            document.getElementById('ui-vie-objectif').setAttribute('data-usd', budgetVie);
+
+            // 2. Récupérer les données du parc et transactions
+            let motos = [];
+            let transactions = [];
+            
+            try {
+                motos = await dbGetAllMotos();
+                if(db.objectStoreNames.contains("transactions")) {
+                    transactions = await dbGetAllTransactions();
+                }
+            } catch(e) {}
+
+            const motosActives = motos.filter(m => m.statut === "ACTIVE");
+            
+            // Mise à jour Jauge Parc
+            document.getElementById('ui-parc-actuel').innerText = `${motosActives.length} Active(s)`;
+            document.getElementById('ui-parc-cible').innerText = `Objectif : ${tailleCible} Motos`;
+            const pctParc = tailleCible > 0 ? (motosActives.length / tailleCible) * 100 : 0;
+            document.getElementById('ui-parc-bar').style.width = `${Math.min(pctParc, 100)}%`;
+
+            // Analyses Financières
+            let totalEncaissements = 0;
+            let totalRetraits = 0;
+            let epargneProjet = 0;
+            let depensesVieEnCours = 0;
+            
+            const perMotoTotals = {};
+            motosActives.forEach(m => perMotoTotals[m.id] = 0);
+
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            transactions.forEach(tx => {
+                const txDate = new Date(tx.date_timestamp);
+                if (tx.type === 'ENTREE') {
+                    totalEncaissements += tx.montant_usd;
+                    if (perMotoTotals[tx.moto_id] !== undefined) {
+                        perMotoTotals[tx.moto_id] += tx.montant_usd;
+                    }
+                } else if (tx.type === 'SORTIE') {
+                    totalRetraits += tx.montant_usd;
+                    if (tx.categorie === 'EPARGNE_PROJET') {
+                        epargneProjet += tx.montant_usd;
+                    } else if (tx.categorie === 'CONSOMMATION') {
+                        // Uniquement le mois en cours
+                        if (txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear) {
+                            depensesVieEnCours += tx.montant_usd;
+                        }
+                    }
+                }
+            });
+
+            // Mise à jour Caisse Entreprise Globale
+            const caisse = totalEncaissements - totalRetraits;
+            document.getElementById('ui-caisse').setAttribute('data-usd', caisse.toFixed(2));
+
+            // Mise à jour Jauge Épargne
+            const pctProjet = projetCout > 0 ? (epargneProjet / projetCout) * 100 : 0;
+            document.getElementById('ui-projet-pct').innerText = `${pctProjet.toFixed(1)}%`;
+            document.getElementById('ui-projet-bar').style.width = `${Math.min(pctProjet, 100)}%`;
+
+            // Mise à jour Budget Vie
+            document.getElementById('ui-vie-consomme').setAttribute('data-usd', depensesVieEnCours.toFixed(2));
+            const pctVie = budgetVie > 0 ? (depensesVieEnCours / budgetVie) * 100 : 0;
+            document.getElementById('ui-vie-bar').style.width = `${Math.min(pctVie, 100)}%`;
+            document.getElementById('ui-vie-bar').style.background = pctVie > 100 ? 'var(--danger)' : 'var(--success)';
+
+            // Alertes Fins de contrat
+            const listContrats = document.getElementById('alert-contrats');
+            let alertesHTML = '';
+            motosActives.forEach(m => {
+                const objTot = parseFloat(m.objectif_total_usd) || 2400;
+                const totalPaye = perMotoTotals[m.id];
+                const restant = objTot - totalPaye;
+                if (restant <= 100 && restant > 0) {
+                    alertesHTML += `<li>MOTO <strong>${m.nom}</strong>: Plus que ${restant.toFixed(2)}$ à payer !</li>`;
+                } else if (restant <= 0 && objTot > 0 && totalPaye > 0) {
+                    alertesHTML += `<li style="color:var(--success)">MOTO <strong>${m.nom}</strong>: Objectif Atteint (${objTot}$)</li>`;
+                }
+            });
+            listContrats.innerHTML = alertesHTML ? alertesHTML : `<li>Aucun contrat ne se termine bientôt.</li>`;
+
+            // Alertes Retards
+            const listRetards = document.getElementById('alert-retards');
+            let retardsHTML = '';
+            const uneSemaineEnMs = 7 * 24 * 60 * 60 * 1000;
+            
+            motosActives.forEach(m => {
+                const txsMoto = transactions.filter(t => t.type === 'ENTREE' && t.moto_id === m.id);
+                if (txsMoto.length > 0) {
+                    txsMoto.sort((a,b) => b.date_timestamp - a.date_timestamp);
+                    const dernierPaiement = txsMoto[0].date_timestamp;
+                    if ((now.getTime() - dernierPaiement) > uneSemaineEnMs) {
+                        const days = Math.floor((now.getTime() - dernierPaiement) / (1000 * 60 * 60 * 24));
+                        retardsHTML += `<li style="color:var(--warning)"><strong>${m.nom}</strong>: ${days} jours sans versement.</li>`;
+                    }
+                } else {
+                    retardsHTML += `<li><strong>${m.nom}</strong>: Aucun versement enregistré.</li>`;
+                }
+            });
+            listRetards.innerHTML = retardsHTML ? retardsHTML : `<li style="color:var(--success)">Aucun retard sur la semaine en cours.</li>`;
+
+            // L'application des devises initiales
+            updateCurrencyDisplay();
+
+            // Lancement du graphique d'analyse
+            try {
+                if (typeof Chart !== 'undefined') {
+                    renderRevenueChart(transactions);
+                } else {
+                    document.getElementById('chart-fallback').style.display = 'block';
+                }
+            } catch(e) {}
+        }
+
+        let revenueChartInstance = null;
+        function renderRevenueChart(transactions) {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            const labels = [];
+            const dataData = [];
+            
+            const now = new Date();
+            now.setHours(23,59,59,999); // Fin de la journée aujourd'hui
+            
+            // On calcule pour la semaine encours ("S-En cours"), S-1, S-2, et S-3
+            for(let i = 3; i >= 0; i--) {
+                const endSemaine = new Date(now.getTime() - (i * 7 * 24 * 60 * 60 * 1000));
+                const startSemaine = new Date(endSemaine.getTime() - (7 * 24 * 60 * 60 * 1000));
+                
+                labels.push(i === 0 ? 'Cette sem.' : `Il y a ${i} sem.`);
+                
+                let sum = 0;
+                transactions.forEach(tx => {
+                    if (tx.type === "ENTREE" && tx.date_timestamp > startSemaine.getTime() && tx.date_timestamp <= endSemaine.getTime()) {
+                        sum += (isUSD ? tx.montant_usd : (tx.montant_usd * tauxActuel));
+                    }
+                });
+                dataData.push(sum);
+            }
+
+            if(revenueChartInstance) revenueChartInstance.destroy();
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: isUSD ? 'Revenus ($)' : 'Revenus (FC)',
+                        data: dataData,
+                        borderColor: '#00ffcc',
+                        backgroundColor: 'rgba(0, 255, 204, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#00ffcc'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        async function loadMotosForSelect() {
+            const select = document.getElementById('v-moto-id');
+            const motos = await dbGetAllMotos();
+            
+            let optionsHTML = '';
+            motos.forEach(m => {
+                if(m.statut === "ACTIVE") {
+                    optionsHTML += `<option value="${m.id}">${m.nom} (${m.plaque})</option>`;
+                }
+            });
+            select.innerHTML = optionsHTML ? optionsHTML : '<option value="">Aucune moto enregistrée</option>';
+        }
+
+        async function enregistrerVersement() {
+            const motoId = document.getElementById('v-moto-id').value;
+            const valInput = document.getElementById('v-montant').value.replace(',', '.');
+            const montant = parseFloat(valInput);
+
+            if (!motoId) return alert("Sélectionnez une moto active.");
+            if (isNaN(montant) || montant <= 0) return alert("Montant du versement invalide.");
+
+            const tx = {
+                id: 'TX_' + Date.now(),
+                type: 'ENTREE',
+                categorie: 'VERSEMENT_HEBDO',
+                montant_usd: montant,
+                moto_id: motoId,
+                date_timestamp: Date.now()
+            };
+
+            try {
+                await dbSaveTransaction(tx);
+                document.getElementById('v-montant').value = '';
+                hideModal('modal-versement');
+                await loadDashboardData();
+                alert("🎉 Versement validé et enregistré en base !");
+            } catch(error) {
+                alert("Erreur lors de l'enregistrement de la transaction.");
+            }
+        }
+
+        async function enregistrerRetrait() {
+            const valInput = document.getElementById('r-montant').value.replace(',', '.');
+            const montant = parseFloat(valInput);
+            const motif = document.getElementById('r-motif').value;
+
+            if (isNaN(montant) || montant <= 0) return alert("Montant du retrait invalide.");
+
+            const tx = {
+                id: 'TX_' + Date.now(),
+                type: 'SORTIE',
+                categorie: motif,
+                montant_usd: montant,
+                moto_id: null,
+                date_timestamp: Date.now()
+            };
+
+            try {
+                await dbSaveTransaction(tx);
+                document.getElementById('r-montant').value = '';
+                hideModal('modal-retrait');
+                await loadDashboardData();
+                alert("✅ Retrait effectué.");
+            } catch(error) {
+                alert("Erreur lors du retrait.");
+            }
+        }
+    </script>
+</body>
+</html>

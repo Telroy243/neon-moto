@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON Fleet - Paramètres</title>
+    <style>
+        /* --- VARIABLES & BASE (Identique au Dashboard) --- */ 
+        :root { 
+            --bg: #050505; --card: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
+            --primary: #00ffcc; --danger: #ff3366; 
+            --text: #ffffff; --text-dim: #888888; 
+            --warning: #ffaa00; --success: #00ffaa; 
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; }
+
+        header { padding: 15px 20px; background: var(--card); border-bottom: 1px solid #222; }
+        header h1 { font-size: 1.4rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;}
+
+        main { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 90px; }
+        
+        .card { 
+            background: var(--card); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 18px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--glass-border); 
+            transition: transform 0.3s ease, box-shadow 0.3s ease; 
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px rgba(0,255,204,0.15); }
+        .card h3 { font-size: 1.1rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 12px; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 1rem; }
+        .input-group input:focus { border-color: var(--primary); outline: none; }
+
+        .btn-action { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; margin-bottom: 10px; font-size: 1rem; cursor: pointer; }
+        .main-btn { background: var(--primary); color: #000; }
+        .sub-btn { background: #222; color: #fff; border: 1px solid #444; }
+        .danger-btn { background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .ai-btn { background: linear-gradient(45deg, #00ffcc, #0088ff); color: #000; border: none; }
+
+        /* --- NAVIGATION --- */
+        nav { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--glass-border); padding-bottom: 10px; z-index: 100; 
+        }
+        .nav-link { background: none; border: none; font-size: 1.5rem; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; transition: transform 0.2s; }
+        .nav-link:hover { transform: scale(1.1); color: var(--text); }
+        .nav-link span { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-link.active { color: var(--primary); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚙️ Paramètres</h1>
+    </header>
+
+    <main>
+        <div class="card" style="border-color: #0088ff;">
+            <h3 style="color: #00ffcc;">🧠 Assistant Gemini</h3>
+            <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 15px; line-height: 1.4;">
+                Générez un rapport complet sur l'état de votre flotte, vos finances et vos objectifs. Le texte sera copié, vous n'aurez qu'à le coller dans l'application Gemini pour recevoir des conseils d'optimisation.
+            </p>
+            <button onclick="genererPromptIA()" class="btn-action ai-btn">Copier le rapport pour l'IA</button>
+        </div>
+
+        <div class="card">
+            <h3>🎯 Vos Objectifs</h3>
+            <div class="input-group">
+                <label>Nom du projet d'achat (ex: Haojue DR 160)</label>
+                <input type="text" id="cfg-projet-nom" placeholder="Projet cible">
+            </div>
+            <div class="input-group">
+                <label>Coût du projet (USD)</label>
+                <input type="number" id="cfg-projet-cout" placeholder="2500">
+            </div>
+            <div class="input-group">
+                <label>Budget de Vie Mensuel (USD)</label>
+                <input type="number" id="cfg-budget-vie" placeholder="600">
+            </div>
+            <div class="input-group">
+                <label>Taille cible du parc (Nombre de motos)</label>
+                <input type="number" id="cfg-taille-parc" placeholder="8">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>🌍 Configuration</h3>
+            <div class="input-group">
+                <label>Taux de change actuel (1 USD = X CDF)</label>
+                <input type="number" id="cfg-taux" placeholder="2500">
+            </div>
+            <div class="input-group">
+                <label>Devise d'affichage par défaut</label>
+                <select id="cfg-devise">
+                    <option value="USD">Dollars Américains (USD)</option>
+                    <option value="CDF">Francs Congolais (CDF)</option>
+                </select>
+            </div>
+            <button onclick="sauvegarderParametres()" class="btn-action main-btn" style="margin-top: 10px;">Enregistrer les modifications</button>
+        </div>
+
+        <div class="card">
+            <h3>💾 Données & Sécurité</h3>
+            <button onclick="exporterJSON()" class="btn-action sub-btn">Exporter la base (Backup JSON)</button>
+            <button onclick="document.getElementById('import-file').click()" class="btn-action sub-btn">Restaurer une sauvegarde</button>
+            <input type="file" id="import-file" style="display: none;" accept=".json" onchange="importerJSON(event)">
+            
+            <button onclick="window.location.href='index.html'" class="btn-action danger-btn" style="margin-top: 15px;">🔒 Verrouiller l'application</button>
+        </div>
+    </main>
+
+    <nav>
+        <a href="dash.html" class="nav-link">🏠<span>Dash</span></a>
+        <a href="garage.html" class="nav-link">🏍️<span>Garage</span></a>
+        <a href="rh.html" class="nav-link">👥<span>Équipe</span></a>
+        <a href="finances.html" class="nav-link">📊<span>Finances</span></a>
+        <a href="settings.html" class="nav-link active">⚙️<span>Réglages</span></a>
+    </nav>
+
+    <script src="database.js"></script>
+    <script>
+        // 1. CHARGEMENT INITIAL
+        window.onload = async () => {
+            try {
+                await initDB();
+                const pin = await getStoredPin();
+                if (!pin) { window.location.href = "index.html"; return; }
+                
+                await chargerParametresUI();
+            } catch (error) {
+                alert("Erreur de connexion à la base de données.");
+            }
+        };
+
+        // 2. LECTURE DES PARAMÈTRES
+        async function chargerParametresUI() {
+            document.getElementById('cfg-projet-nom').value = await dbGetConfig('projet_nom') || "Haojue DR/DL 160";
+            document.getElementById('cfg-projet-cout').value = await dbGetConfig('projet_cout') || 2500;
+            document.getElementById('cfg-budget-vie').value = await dbGetConfig('budget_vie') || 600;
+            document.getElementById('cfg-taille-parc').value = await dbGetConfig('taille_parc') || 8;
+            document.getElementById('cfg-taux').value = await dbGetConfig('taux_change') || 2500;
+            document.getElementById('cfg-devise').value = await dbGetConfig('pref_devise') || "USD";
+        }
+
+        // 3. SAUVEGARDE DES PARAMÈTRES
+        async function sauvegarderParametres() {
+            const btn = document.querySelector('.main-btn');
+            btn.innerText = "Sauvegarde...";
+
+            await dbSaveConfig('projet_nom', document.getElementById('cfg-projet-nom').value);
+            await dbSaveConfig('projet_cout', parseFloat(document.getElementById('cfg-projet-cout').value) || 2500);
+            await dbSaveConfig('budget_vie', parseFloat(document.getElementById('cfg-budget-vie').value) || 600);
+            await dbSaveConfig('taille_parc', parseInt(document.getElementById('cfg-taille-parc').value) || 8);
+            await dbSaveConfig('taux_change', parseFloat(document.getElementById('cfg-taux').value) || 2500);
+            await dbSaveConfig('pref_devise', document.getElementById('cfg-devise').value);
+
+            setTimeout(() => {
+                btn.innerText = "Enregistrer les modifications";
+                alert("Paramètres mis à jour avec succès !");
+            }, 300);
+        }
+
+        // 4. GÉNÉRATEUR DE PROMPT IA
+        async function genererPromptIA() {
+            const pNom = await dbGetConfig('projet_nom') || "Projet";
+            const pCout = parseFloat(await dbGetConfig('projet_cout')) || 0;
+            const bVie = parseFloat(await dbGetConfig('budget_vie')) || 0;
+            
+            const motos = await dbGetAllMotos();
+            const motards = await dbGetAllMotards();
+            const transactions = db.objectStoreNames.contains("transactions") ? await dbGetAllTransactions() : [];
+            
+            // Calcul Caisse et Épargne (Même algorithme que le Dashboard)
+            let caisse = 0;
+            let epargne = 0;
+            transactions.forEach(tx => {
+                if (tx.type === "ENTREE") {
+                    caisse += tx.montant_usd;
+                } else if (tx.type === "SORTIE") {
+                    caisse -= tx.montant_usd;
+                    if (tx.categorie === "EPARGNE_PROJET") {
+                        epargne += tx.montant_usd;
+                    }
+                }
+            });
+
+            const motosActives = motos.filter(m => m.statut === "ACTIVE");
+            const motardsActifs = motards.filter(m => m.statut === "EN_POSTE").length;
+            const motardsSuspendus = motards.filter(m => m.statut === "SUSPENDU").length;
+
+            let prompt = `Agis comme mon directeur financier et conseiller stratégique. Voici les données réelles et à jour de mon parc de motos-taxis (contrats de remise) :\n\n`;
+            
+            prompt += `--- OBJECTIFS & BESOINS ---\n`;
+            prompt += `- Budget de vie mensuel requis : ${bVie} USD\n`;
+            prompt += `- Objectif d'épargne cible : Acquisition "${pNom}" (Coût global : ${pCout} USD)\n\n`;
+
+            prompt += `--- SITUATION FINANCIÈRE ACTUELLE ---\n`;
+            prompt += `- Trésorerie d'Entreprise Disponible : ${caisse.toFixed(2)} USD\n`;
+            prompt += `- Fonds déjà épargnés (sécurisés) : ${epargne.toFixed(2)} USD sur les ${pCout} USD nécessaires\n\n`;
+
+            prompt += `--- RESSOURCES HUMAINES ---\n`;
+            prompt += `- Chauffeurs actifs (En poste) : ${motardsActifs}\n`;
+            prompt += `- Chauffeurs suspendus : ${motardsSuspendus}\n\n`;
+
+            prompt += `--- ÉTAT DU MATÉRIEL (${motosActives.length} motos en circulation) ---\n`;
+            if (motosActives.length === 0) {
+                prompt += `Le parc est actuellement vide ou toutes les motos sont inactives.\n`;
+            } else {
+                motosActives.forEach((m, index) => {
+                    // Calcul vrai ROI pour l'IA
+                    let mtEncaisse = 0;
+                    transactions.forEach(tx => {
+                        if(tx.type === "ENTREE" && tx.moto_id === m.id) mtEncaisse += tx.montant_usd;
+                    });
+                    
+                    prompt += `${index + 1}. ${m.nom} (${m.type_gestion.replace('_', ' ')})\n`;
+                    prompt += `   - Achat initial : ${m.prix_achat_usd} USD | Objectif final de contrat : ${m.objectif_total_usd} USD\n`;
+                    prompt += `   - Versement attendu : ${m.versement_hebdo_usd} USD / semaine\n`;
+                    prompt += `   - Déjà encaissé : ${mtEncaisse} USD\n`;
+                });
+            }
+
+            prompt += `\n--- TA MISSION D'ANALYSE FINANCIÈRE ---\n`;
+            prompt += `Analyse cette structure financière et opérationnelle avec le plus haut niveau d'expertise. \n`;
+            prompt += `1. Fais une projection de mes revenus mensuels nets (en soustrayant mon budget de vie incompressible de ${bVie} USD).\n`;
+            prompt += `2. Compte tenu de mon épargne actuelle de ${epargne.toFixed(2)} USD, calcule précisément dans combien de temps (semaines/mois) je pourrai financer entièrement l'acquisition "${pNom}".\n`;
+            prompt += `3. En te basant sur le ratio motards/motos et les rapports investissement/encaissement des véhicules, détectes-tu une fuite de capitaux, ou un manque de rentabilité ? Sois très précis, analytique, et propose un plan d'action immédiat.`;
+
+            // Technique universelle (Compatible Kodular, WebView, HTTP local)
+            const fallbackCopyText = (text) => {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    if (document.execCommand('copy')) {
+                        alert("✅ Rapport hyper-complet copié dans le presse-papiers !\n\nOuvre l'application Gemini et colle le texte.");
+                        document.body.removeChild(textArea);
+                        return;
+                    }
+                } catch (err) { }
+                
+                // Si la copie échoue en silence (permissions restrictives), mode visuel
+                textArea.style.opacity = "1";
+                textArea.style.width = "90%";
+                textArea.style.height = "80vh";
+                textArea.style.top = "10vh";
+                textArea.style.left = "5%";
+                textArea.style.zIndex = "9999";
+                textArea.style.padding = "15px";
+                textArea.style.background = "#121212";
+                textArea.style.border = "3px solid #00ffcc";
+                textArea.style.color = "#ffffff";
+                textArea.style.fontSize = "14px";
+                alert("⚠️ Appuie longuement sur le texte apparu à l'écran pour sélectionner TOUT, puis copie-le manuellement.");
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(prompt)
+                    .then(() => alert("✅ Rapport hyper-complet copié !\n\nOuvre l'application Gemini et colle le texte."))
+                    .catch(() => fallbackCopyText(prompt));
+            } else {
+                fallbackCopyText(prompt); // Cas Kodular, `file://` sans HTTPS ou navigateurs isolés
+            }
+        }
+
+        // 5. EXPORT / IMPORT JSON (BACKUP COMPLET)
+        async function exporterJSON() {
+            try {
+                // On récupère TOUT ce qui est dans la base de données
+                const allMotos = await dbGetAllMotos();
+                const allMotards = await dbGetAllMotards();
+                
+                // Préparation pour les futures tables (Transactions et Incidents)
+                const allTransactions = db.objectStoreNames.contains("transactions") ? await new Promise(r => { const t = db.transaction("transactions","readonly").objectStore("transactions").getAll(); t.onsuccess = () => r(t.result); t.onerror = () => r([]); }) : [];
+                const allIncidents = db.objectStoreNames.contains("incidents") ? await new Promise(r => { const t = db.transaction("incidents","readonly").objectStore("incidents").getAll(); t.onsuccess = () => r(t.result); t.onerror = () => r([]); }) : [];
+
+                const dataToExport = {
+                    version: "2.1",
+                    date: new Date().toISOString(),
+                    motos: allMotos,
+                    motards: allMotards,
+                    transactions: allTransactions,
+                    incidents: allIncidents,
+                    config: {
+                        projet_nom: await dbGetConfig('projet_nom'),
+                        projet_cout: await dbGetConfig('projet_cout'),
+                        budget_vie: await dbGetConfig('budget_vie'),
+                        taille_parc: await dbGetConfig('taille_parc'),
+                        taux_change: await dbGetConfig('taux_change')
+                    }
+                };
+
+                // Création du fichier téléchargeable
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `NEON_Backup_${new Date().toISOString().split('T')[0]}.json`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            } catch (error) {
+                alert("Erreur lors de l'exportation des données : " + error);
+            }
+        }
+
+        async function importerJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 1. Avertissement de sécurité (Action destructive)
+            if (!confirm("⚠️ ATTENTION : Cette restauration va ÉCRASER toutes vos motos et paramètres actuels. Voulez-vous vraiment continuer ?")) {
+                event.target.value = ''; // Réinitialise le bouton fichier
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.version) throw new Error("Format JSON non reconnu.");
+
+                    // 2. Ouverture d'une Transaction globale en mode "readwrite"
+                    // On utilise la variable globale 'db' de database.js
+                    const stores = ["motos", "config"];
+                    if (db.objectStoreNames.contains("motards")) stores.push("motards");
+                    if (db.objectStoreNames.contains("transactions")) stores.push("transactions");
+                    if (db.objectStoreNames.contains("incidents")) stores.push("incidents");
+
+                    const trans = db.transaction(stores, "readwrite");
+
+                    // 3. Purge et Restauration : MOTOS et MOTARDS
+                    const motoStore = trans.objectStore("motos");
+                    motoStore.clear(); // Vide la table
+                    if (data.motos && Array.isArray(data.motos)) {
+                        data.motos.forEach(moto => motoStore.put(moto));
+                    }
+                    
+                    if (stores.includes("motards")) {
+                        const motardStore = trans.objectStore("motards");
+                        motardStore.clear();
+                        if (data.motards && Array.isArray(data.motards)) {
+                            data.motards.forEach(motard => motardStore.put(motard));
+                        }
+                    }
+
+                    // 4. Purge et Restauration : TRANSACTIONS & INCIDENTS (si présents dans le backup)
+                    if (data.transactions && Array.isArray(data.transactions) && stores.includes("transactions")) {
+                        const txStore = trans.objectStore("transactions");
+                        txStore.clear();
+                        data.transactions.forEach(tx => txStore.put(tx));
+                    }
+                    if (data.incidents && Array.isArray(data.incidents) && stores.includes("incidents")) {
+                        const incStore = trans.objectStore("incidents");
+                        incStore.clear();
+                        data.incidents.forEach(inc => incStore.put(inc));
+                    }
+
+                    // 5. Purge et Restauration : CONFIGURATION
+                    const configStore = trans.objectStore("config");
+                    if (data.config) {
+                        for (const [key, value] of Object.entries(data.config)) {
+                            if (value !== null && value !== undefined) {
+                                configStore.put({ id: key, value: value });
+                            }
+                        }
+                    }
+
+                    // 6. Validation finale de la transaction
+                    trans.oncomplete = () => {
+                        alert("✅ Restauration réussie ! L'application va se recharger avec vos nouvelles données.");
+                        setTimeout(() => { window.location.reload(); }, 2000); // Laisse le toast s'afficher
+                    };
+
+                    trans.onerror = (err) => {
+                        console.error("Erreur de transaction DB :", err);
+                        alert("❌ Échec de l'écriture dans la base de données.");
+                    };
+
+                } catch (error) {
+                    alert("❌ Erreur : Le fichier JSON est corrompu ou illisible.");
+                    console.error(error);
+                } finally {
+                    event.target.value = ''; // Réinitialise l'input file pour permettre un nouvel import
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
