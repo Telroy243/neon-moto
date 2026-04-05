@@ -2,131 +2,283 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON - Connexion</title>
-    <link rel="manifest" href="./manifest.json">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - NEON Business</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b0f19">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
     <style>
-        :root { --bg: #050505; --card: rgba(20, 20, 20, 0.6); --primary: #00ffcc; --danger: #ff0055; --text: #ffffff; --glass-border: rgba(255, 255, 255, 0.08); }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
-        
-        .neon-title { font-size: 2.5rem; color: var(--primary); text-shadow: 0 0 15px rgba(0,255,204,0.6); margin-bottom: 10px; }
-        #pin-display { font-size: 2.5rem; letter-spacing: 15px; margin: 30px 0; color: var(--primary); height: 50px; text-shadow: 0 0 10px rgba(0,255,204,0.4); }
-        .pin-grid { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; }
-        .pin-grid button { 
-            height: 80px; width: 80px; border-radius: 50%; border: 1px solid var(--glass-border); 
-            background: var(--card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            color: #fff; font-size: 1.5rem; transition: transform 0.2s, box-shadow 0.2s, background 0.2s; 
-        }
-        .pin-grid button:active { background: var(--primary); color: #000; transform: scale(0.9); box-shadow: 0 0 15px rgba(0,255,204,0.5); }
-        .btn-ok { border-color: var(--primary) !important; color: var(--primary) !important; }
-        .btn-c { border-color: var(--danger) !important; color: var(--danger) !important; }
-        
-        #install-banner {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px;
-            background: var(--card); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--primary); padding: 20px; border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,255,204,0.3); z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;
-        }
-        #install-banner.hidden { display: none; }
-        #install-banner button {
-            background: var(--primary); color: #000; border: none; padding: 12px 20px;
-            font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: transform 0.2s;
-        }
-        #install-banner button:active { transform: scale(0.95); }
+        .chart-container { position: relative; width: 100%; height: 220px; margin-top: 15px; }
+        .debt-item { display: flex; justify-content: space-between; background: var(--surface-solid); padding: 15px; border-radius: 12px; font-size: 0.95rem; margin-bottom: 10px; border: 1px solid var(--border-color); align-items: center;}
     </style>
 </head>
 <body>
+    <header><h1><i class="ph-fill ph-lightning"></i> NEON Business</h1></header>
 
-    <h1 class="neon-title">NEON FLEET</h1>
-    <p id="pin-status" style="color: #888">CHARGEMENT...</p>
-    <div id="pin-display">----</div>
-    <div class="pin-grid">
-        <button onclick="press(1)">1</button><button onclick="press(2)">2</button><button onclick="press(3)">3</button>
-        <button onclick="press(4)">4</button><button onclick="press(5)">5</button><button onclick="press(6)">6</button>
-        <button onclick="press(7)">7</button><button onclick="press(8)">8</button><button onclick="press(9)">9</button>
-        <button onclick="resetPinInput()" class="btn-c">C</button>
-        <button onclick="press(0)">0</button>
-        <button onclick="validatePin()" class="btn-ok">OK</button>
-    </div>
+    <main class="page">
+        <div class="global-cash">
+            <h3><i class="ph ph-wallet"></i> Trésorerie Disponible</h3>
+            <p id="kpi-cash-balance">...</p>
+        </div>
 
-    <!-- Bannière PWA personnalisée -->
-    <div id="install-banner" class="hidden">
-        <h3 style="color:var(--primary); font-size:1.2rem; margin:0; text-transform:uppercase;">Installer NEON FLEET</h3>
-        <p style="font-size:0.85rem; margin:0; color:var(--text-dim);">Installez l'application pour une expérience 100% hors-ligne et un accès direct depuis l'écran d'accueil.</p>
-        <div style="display:flex; gap:10px; width:100%;">
-            <button id="btn-install" style="flex:1;">INSTALLER</button>
-            <button id="btn-close-install" style="flex:0.5; background:transparent; border:1px solid #555; color:#fff;">Plus tard</button>
+        <div class="kpi-grid">
+            <div class="kpi-box">
+                <i class="ph ph-trend-up"></i>
+                <h3>Bénéfice Net</h3><p id="kpi-benef">0</p>
+            </div>
+            <div class="kpi-box cyan">
+                <i class="ph ph-chart-bar"></i>
+                <h3>Chiffre d'Aff.</h3><p id="kpi-ca">0</p>
+            </div>
+            <div class="kpi-box purple">
+                <i class="ph ph-package"></i>
+                <h3>Valeur Stock</h3><p id="kpi-stock-val">0</p>
+            </div>
+            <div class="kpi-box orange">
+                <i class="ph ph-hand-coins"></i>
+                <h3>Dettes Client</h3><p id="kpi-dettes">0</p>
+            </div>
+        </div>
+        
+        <div class="card" style="border-left: 4px solid var(--neon-cyan);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <h3 class="section-title" style="margin:0;"><i class="ph ph-chart-line"></i> Évolution Ventes</h3>
+                <div style="display:flex; gap:6px;">
+                    <button class="filter-btn active" onclick="setChartFilter('ALL', this)" style="padding: 6px 12px; font-size: 0.8rem;">ALL</button>
+                    <button class="filter-btn" onclick="setChartFilter('30', this)" style="padding: 6px 12px; font-size: 0.8rem;">30J</button>
+                    <button class="filter-btn" onclick="setChartFilter('7', this)" style="padding: 6px 12px; font-size: 0.8rem;">7J</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+
+        <div class="card" id="debts-container" style="border-left: 4px solid var(--neon-orange);">
+            <h3 class="section-title"><i class="ph ph-warning-circle"></i> Dettes En Cours</h3>
+            <div id="debt-list-el"></div>
+        </div>
+
+        <div id="alert-container"></div>
+        <a href="inventory.html" class="fab"><i class="ph ph-plus"></i></a>
+    </main>
+
+    <!-- PWA Custom Install Banner -->
+    <div id="pwa-install-banner" class="pwa-install-banner">
+        <div class="pwa-content">
+            <div class="pwa-icon"><i class="ph-fill ph-download-simple"></i></div>
+            <div class="pwa-text">
+                <h3>Installer NEON Business</h3>
+                <p>Ajoutez cette application à votre accueil pour une expérience 100% hors-ligne fluide et rapide !</p>
+            </div>
+        </div>
+        <div class="pwa-actions">
+            <button class="btn-dismiss" id="btn-pwa-dismiss">Plus tard</button>
+            <button class="btn-install" id="btn-pwa-install">Installer ⚡</button>
         </div>
     </div>
 
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item active"><i class="ph-fill ph-squares-four"></i><span>Dash</span></a>
+        <a href="inventory.html" class="nav-item"><i class="ph ph-package"></i><span>Stock</span></a>
+        <a href="treasury.html" class="nav-item"><i class="ph ph-chart-line-up"></i><span>Flux</span></a>
+        <a href="settings.html" class="nav-item"><i class="ph ph-gear"></i><span>Param</span></a>
+        <a href="about.html" class="nav-item"><i class="ph ph-user-circle"></i><span>Moi</span></a>
+    </nav>
+
     <script src="database.js"></script>
     <script>
-        const ADMIN_RECOVERY = "191220040";
-        let inputPin = "";
+        let salesChartInstance = null;
+        let currentChartFilter = 'ALL';
 
-        window.onload = async () => {
-            await initDB();
-            const savedPin = await getStoredPin();
-            document.getElementById("pin-status").innerText = savedPin ? "ENTREZ VOTRE PIN" : "CRÉEZ UN NOUVEAU PIN";
-        };
+        function setChartFilter(days, el) {
+            currentChartFilter = days;
+            el.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            updateDashboard();
+        }
 
-        function press(n) { if(inputPin.length < 10) { inputPin += n; renderPin(); } }
-        function resetPinInput() { inputPin = ""; renderPin(); }
-        function renderPin() { document.getElementById("pin-display").innerText = "*".repeat(inputPin.length) || "----"; }
+        async function updateDashboard() {
+            await dbManager.initDB();
+            const products = await dbManager.getProducts();
+            const transactions = await dbManager.getTransactions();
 
-        async function validatePin() {
-            const saved = await getStoredPin();
-            if (!saved) {
-                if (inputPin.length >= 4) {
-                    await savePin(inputPin);
-                    window.location.href = "dash.html"; // Redirection
-                } else { alert("Minimum 4 chiffres."); resetPinInput(); }
-            } else {
-                if (inputPin === saved) {
-                    window.location.href = "dash.html"; // Redirection
-                } else if (inputPin === ADMIN_RECOVERY) {
-                    resetApp(); 
-                } else {
-                    alert("PIN incorrect."); resetPinInput();
+            let benefUsd = 0, caUsd = 0, stockValUsd = 0, balanceUsd = 0, dettesUsd = 0;
+            let alertsHTML = '';
+            const debtsArr = [];
+
+            transactions.forEach(t => {
+                if(t.type === 'VENTE') {
+                    if (t.statut_paiement === 'PAYE') {
+                        benefUsd += t.marge_realisee || 0;
+                        caUsd += t.montant_total;
+                        balanceUsd += t.montant_total;
+                    } else if (t.statut_paiement === 'DETTE') {
+                        dettesUsd += t.montant_total;
+                        debtsArr.push(t);
+                    }
+                } else if(t.type === 'ACHAT' || t.type === 'RETRAIT') {
+                    balanceUsd += t.montant_total; 
                 }
+            });
+
+            products.forEach(p => {
+                stockValUsd += (p.stock_actuel * p.prix_achat_moyen);
+                if(p.stock_actuel <= p.seuil_alerte) {
+                    alertsHTML += `<div class="card" style="border-left: 4px solid var(--neon-red);"><p style="display:flex; align-items:center; gap:8px;"><i class="ph-fill ph-warning" style="color:var(--neon-red); font-size:1.5rem;"></i> Stock critique : <strong>${p.nom}</strong> (Reste ${p.stock_actuel})</p></div>`;
+                }
+            });
+
+            document.getElementById('kpi-benef').innerText = window.formatMoney(benefUsd);
+            document.getElementById('kpi-ca').innerText = window.formatMoney(caUsd);
+            document.getElementById('kpi-stock-val').innerText = window.formatMoney(stockValUsd);
+            document.getElementById('kpi-dettes').innerText = window.formatMoney(dettesUsd);
+            
+            const cashEl = document.getElementById('kpi-cash-balance');
+            cashEl.innerText = window.formatMoney(balanceUsd);
+            cashEl.className = balanceUsd >= 0 ? 'positive' : 'negative';
+
+            document.getElementById('alert-container').innerHTML = alertsHTML;
+
+            renderDebtsList(debtsArr);
+            renderChart(transactions);
+        }
+
+        function renderDebtsList(debtsArr) {
+            const container = document.getElementById('debt-list-el');
+            if (debtsArr.length === 0) {
+                container.innerHTML = '<p style="color:var(--text-muted); font-size:0.95rem; display:flex; align-items:center; gap:8px;"><i class="ph ph-check-circle"></i> Aucune dette en cours.</p>';
+            } else {
+                let html = '';
+                debtsArr.forEach(d => {
+                    const date_str = new Date(d.date_transaction).toLocaleDateString('fr-FR', {day:'2-digit', month:'short'});
+                    const cleanNom = d.dette_nom.replace(/'/g, "\\'");
+                    const cleanProd = d.nom_produit_historique.replace(/'/g, "\\'");
+                    html += `<div class="debt-item" style="cursor:pointer; border-left: 4px solid var(--neon-orange); transition: background 0.3s;" onmouseover="this.style.background='var(--border-color)'" onmouseout="this.style.background='var(--surface-solid)'" onclick="promptPayDebt('${d.id}', '${cleanNom}', '${cleanProd}', ${d.montant_total}, ${d.taux_historique})">
+                                <div><strong style="color:var(--neon-orange); font-size:1.1rem;">${d.dette_nom}</strong><br><span style="font-size:0.8rem;color:var(--text-muted)">${d.nom_produit_historique} (${date_str})</span></div>
+                                <div style="text-align:right;">
+                                    <strong style="color:var(--neon-green); display:block; font-size:1.1rem;">${window.formatMoney(d.montant_total, d.taux_historique)}</strong>
+                                    <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; display:flex; align-items:center; justify-content:flex-end; gap:4px;"><i class="ph ph-hand-tap"></i> Payer</span>
+                                </div>
+                             </div>`;
+                });
+                container.innerHTML = html;
             }
         }
 
-        // --- PWA : SERVICE WORKER & INSTALLATION ---
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => {
-                    console.error('ServiceWorker error:', err);
-                });
+        function openDebt(id, clName) {
+            UI.confirm("Paiement Dette", "Marquer la dette de <strong style='color:var(--text-main)'>" + clName + "</strong> comme payée ?", false).then(ok => {
+                if(ok) {
+                    dbManager.payDebt(id).then(() => {
+                        UI.showToast("Dette bien encaissée", "success");
+                        updateDashboard();
+                    }).catch(e => UI.showToast(e.message, "error"));
+                }
             });
         }
 
+        // PWA Installation Custom Prompt Logic
         let deferredPrompt;
+        const pwaBanner = document.getElementById('pwa-install-banner');
+        const btnInstall = document.getElementById('btn-pwa-install');
+        const btnDismiss = document.getElementById('btn-pwa-dismiss');
+
         window.addEventListener('beforeinstallprompt', (e) => {
+            // Empêcher l'infobar native d'apparaître
             e.preventDefault();
+            // Stash pour un appel manuel
             deferredPrompt = e;
-            document.getElementById('install-banner').classList.remove('hidden');
+            // Afficher notre jolie UI
+            setTimeout(() => { pwaBanner.classList.add('show'); }, 2000); // Popup 2 secondes après affichage pour la fluidité
         });
 
-        document.getElementById('btn-install').addEventListener('click', async () => {
-            document.getElementById('install-banner').classList.add('hidden');
-            if (deferredPrompt) {
+        btnDismiss.addEventListener('click', () => { pwaBanner.classList.remove('show'); });
+
+        btnInstall.addEventListener('click', async () => {
+            pwaBanner.classList.remove('show');
+            if(deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') { UI.showToast("🎉 Merci d'avoir installé NEON !", "success"); }
                 deferredPrompt = null;
             }
         });
 
-        document.getElementById('btn-close-install').addEventListener('click', () => {
-            document.getElementById('install-banner').classList.add('hidden');
-        });
+        function renderChart(transactions) {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            let daysToLookBack = 7;
+            if (currentChartFilter === '30') daysToLookBack = 30;
+            if (currentChartFilter === 'ALL') {
+                if (transactions.length === 0) daysToLookBack = 7;
+                else {
+                   const oldest = transactions.reduce((min, t) => new Date(t.date_transaction) < new Date(min) ? t.date_transaction : min, new Date());
+                   const diffTime = Math.abs(new Date() - new Date(oldest));
+                   daysToLookBack = Math.max(7, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                   if (daysToLookBack > 100) daysToLookBack = 100;
+                }
+            }
+            
+            const dataMap = {};
+            const labels = [];
+            for(let i = daysToLookBack - 1; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dStr = d.toISOString().split('T')[0];
+                dataMap[dStr] = 0;
+                labels.push(daysToLookBack > 14 ? `${d.getDate()}/${d.getMonth()+1}` : d.toLocaleDateString('fr-FR', {weekday: 'short'}));
+            }
 
-        window.addEventListener('appinstalled', () => {
-            document.getElementById('install-banner').classList.add('hidden');
-            deferredPrompt = null;
-        });
+            transactions.forEach(t => {
+                if (t.type === 'VENTE' && t.statut_paiement === 'PAYE') {
+                    const tDate = t.date_transaction.split('T')[0];
+                    if (dataMap[tDate] !== undefined) dataMap[tDate] += t.montant_total;
+                }
+            });
+
+            let currencySuffix = window.appSettings.getCurrency() === 'USD' ? '$' : 'CDF';
+            const rate = window.appSettings.getRate();
+            const dataPoints = Object.values(dataMap).map(val => window.appSettings.getCurrency() === 'USD' ? val : val * rate);
+
+            if (salesChartInstance) salesChartInstance.destroy();
+
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+            const textColor = isLight ? '#64748b' : '#94a3b8';
+
+            salesChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `Ventes (${currencySuffix})`,
+                        data: dataPoints,
+                        borderColor: '#00e6f6',
+                        backgroundColor: 'rgba(0, 230, 246, 0.15)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#00e6f6',
+                        pointBorderColor: '#fff',
+                        pointRadius: 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, font: {family: 'Outfit'} } },
+                        x: { grid: { display: false }, ticks: { color: textColor, font: {family: 'Outfit'}, autoSkip: true, maxTicksLimit: 10 } }
+                    },
+                    plugins: { legend: { display: false } },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
+        }
+
+        window.onload = updateDashboard;
     </script>
 </body>
 </html>
